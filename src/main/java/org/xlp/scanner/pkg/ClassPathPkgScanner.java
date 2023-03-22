@@ -1,5 +1,14 @@
 package org.xlp.scanner.pkg;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xlp.scanner.constants.ScannerPkgConsts;
+import org.xlp.scanner.util.ClassUtils;
+import org.xlp.scanner.util.StringUtils;
+import org.xlp.scanner.util.URLUtils;
+import org.xlp.utils.XLPStringUtil;
+import org.xlp.utils.XLPSystemParamUtil;
+
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
@@ -12,15 +21,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xlp.scanner.constants.ScannerPkgConsts;
-import org.xlp.scanner.util.ClassUtils;
-import org.xlp.scanner.util.StringUtils;
-import org.xlp.scanner.util.URLUtils;
-import org.xlp.utils.XLPStringUtil;
-import org.xlp.utils.XLPSystemParamUtil;
 
 /**
  * <p>
