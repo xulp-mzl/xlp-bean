@@ -36,4 +36,9 @@ public @interface Component {
      * 创建bean实例，是否通过代理创建，默认否
      */
     boolean proxy() default false;
+
+    /**
+     * 是否延迟实例化对象，只对单例有效，默认延迟加载
+     */
+    boolean lazy() default true;
 }

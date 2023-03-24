@@ -6,7 +6,7 @@ import org.xlp.bean.exception.NotSuchBeanException;
 /**
  * bean 工厂接口，主要用来实现bean的创建
  */
-public interface BeanFactory {
+public interface IBeanFactory {
     /**
      * 判断给的id的bean是否被代理
      *
@@ -41,12 +41,36 @@ public interface BeanFactory {
     boolean isSingletonByClassName(String className) throws NotSuchBeanException;
 
     /**
+     * 判断给的id的bean是否延迟实例化
+     * @param id bean id
+     * @return true: 是，false：否
+     * @throws NotSuchBeanException 假如未找到指定id的bean则抛出该异常
+     */
+    boolean isLazy(String id) throws NotSuchBeanException;
+
+    /**
+     * 判断给的类全路径名称的bean是否延迟实例化
+     * @param className 类全路径名称
+     * @return true: 是，false：否
+     * @throws NotSuchBeanException 假如未找到指定类名的bean则抛出该异常
+     */
+    boolean isLazyByClassName(String className) throws NotSuchBeanException;
+
+    /**
      * 获取该id的bean对象
      * @param id bean id
      * @return bean 对象
      * @throws BeanBaseException 假如或bean过程失败，则抛出该异常
      */
     <T> T getBean(String id) throws BeanBaseException;
+
+    /**
+     * 获取该id的bean对象
+     * @param beanClass bean类型
+     * @return bean 对象
+     * @throws BeanBaseException 假如或bean过程失败，则抛出该异常
+     */
+    <T, I> T getBean(Class<I> beanClass) throws BeanBaseException;
 
     /**
      * 获取该类全路径名称的bean对象
@@ -62,4 +86,16 @@ public interface BeanFactory {
      * @return Id数据
      */
     <T> String[] getAlias(Class<T> clazz);
+
+    /**
+     * 设置bean容器
+     * @param beanContainer
+     */
+    void setBeanContainer(IBeansContainer beanContainer);
+
+    /**
+     * 获取bean容器对象
+     * @return
+     */
+    IBeansContainer getBeanContainer();
 }
