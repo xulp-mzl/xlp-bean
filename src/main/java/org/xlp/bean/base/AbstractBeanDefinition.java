@@ -205,7 +205,7 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
     }
 
     /**
-     * 获取泛型信息，假如无泛型类型，则返回空数组
+     * 获取父类泛型信息，假如无泛型类型，则返回空数组
      *
      * @return
      */
