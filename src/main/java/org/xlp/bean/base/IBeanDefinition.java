@@ -14,11 +14,23 @@ public interface IBeanDefinition extends IParameterizedType{
     boolean isProxy();
 
     /**
+     * 设置bean是否被代理
+     * @param proxy
+     */
+    void setProxy(boolean proxy);
+
+    /**
      * 是否是单例
      * @see Component#singleton()
      * @return true: 是， false：否
      */
     boolean isSingleton();
+
+    /**
+     * 设置是否单例
+     * @param singleton
+     */
+    void setSingleton(boolean singleton);
 
     /**
      * 是否是延迟实例化对象
@@ -28,6 +40,12 @@ public interface IBeanDefinition extends IParameterizedType{
     boolean isLazy();
 
     /**
+     * 设置是否延迟实例化对象
+     * @param lazy
+     */
+    void setLazy(boolean lazy);
+
+    /**
      * 获取beanId
      * @see Component#id()
      * @return bean id, 为配置返回 null
@@ -35,11 +53,23 @@ public interface IBeanDefinition extends IParameterizedType{
     String getBeanId();
 
     /**
+     * 设置beanId
+     * @param beanId
+     */
+    void setBeanId(String beanId);
+
+    /**
      * 获取bean的描述
      * @see Component#description()
      * @return bean描述
      */
     String getDescription();
+
+    /**
+     * 设置描述信息
+     * @param description
+     */
+    void setDescription(String description);
 
     /**
      * 是否是接口

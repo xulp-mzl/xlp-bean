@@ -11,10 +11,4 @@ public interface IParameterizedType {
      * @return
      */
     Type[] getActualType();
-
-    /**
-     * 设置泛型信息
-     * @param types
-     */
-    void setActualType(Type[] types);
 }

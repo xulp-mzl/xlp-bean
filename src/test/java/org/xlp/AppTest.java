@@ -4,8 +4,10 @@ import org.junit.Test;
 import org.xlp.javabean.JavaBeanPropertiesDescriptor;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,5 +51,14 @@ public class AppTest
 
             System.out.println("===================\n");
         }
+    }
+
+    @Test
+    public void test1(){
+        System.out.println(List.class.isInterface());
+        Class<AbstractList> abstractListClass = AbstractList.class;
+        System.out.println(abstractListClass.isInterface());
+        System.out.println(Modifier.isAbstract(abstractListClass.getModifiers()));
+        System.out.println(Modifier.isAbstract(List.class.getModifiers()));
     }
 }
