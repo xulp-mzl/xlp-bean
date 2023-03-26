@@ -4,6 +4,7 @@ import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.annotation.Component;
 
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 /**
@@ -204,12 +205,18 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
     }
 
     /**
-     * 获取泛型信息
+     * 获取泛型信息，假如无泛型类型，则返回空数组
      *
      * @return
      */
     @Override
     public Type[] getActualType() {
+        assertBeanClass();
+        // 获取父类的泛型类型
+        Type type = beanClass.getGenericSuperclass();
+        if (type instanceof ParameterizedType){
+            return ((ParameterizedType)type).getActualTypeArguments();
+        }
         return new Type[0];
     }
 }
