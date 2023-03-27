@@ -1,7 +1,7 @@
 package org.xlp.bean.base;
 
 import org.xlp.assertion.AssertUtils;
-import org.xlp.bean.annotation.Component;
+import org.xlp.bean.exception.BeanBaseException;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -15,136 +15,38 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
     /**
      * bean的类型
      */
-    private Class<?> beanClass;
+    protected Class<?> beanClass;
 
     /**
-     * 是否需要被代理
+     * bean的类型全路径名
      */
-    private boolean proxy;
+    private final String beanClassName;
 
     /**
-     * 是否延迟实例化
+     * 构造函数
+     * @param beanClass bean类型
+     * @throws NullPointerException 假如参数为null 则抛出该异常
      */
-    private boolean lazy;
-
-    /**
-     * 是否是单例
-     */
-    private boolean singleton;
-
-    /**
-     * bean id
-     */
-    private String beanId;
-
-    /**
-     * bean 描述信息
-     */
-    private String description;
-
-    /**
-     * 是否需要被代理
-     *
-     * @return true: 是， false: 否
-     * @see Component#proxy()
-     */
-    @Override
-    public boolean isProxy() {
-        return proxy;
+    public AbstractBeanDefinition(Class<?> beanClass){
+        AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
+        this.beanClass = beanClass;
+        this.beanClassName = beanClass.getName();
     }
 
     /**
-     * 设置bean是否被代理
-     *
-     * @param proxy
+     * 构造函数
+     * @param beanClassName bean类型全路径名称
+     * @throws NullPointerException 假如参数为null或空 则抛出该异常
+     * @throws BeanBaseException 假如获取beanClassName对应的Class对象出错，则抛出该异常
      */
-    @Override
-    public void setProxy(boolean proxy) {
-        this.proxy = proxy;
-    }
-
-    /**
-     * 是否是单例
-     *
-     * @return true: 是， false：否
-     * @see Component#singleton()
-     */
-    @Override
-    public boolean isSingleton() {
-        return singleton;
-    }
-
-    /**
-     * 设置是否单例
-     *
-     * @param singleton
-     */
-    @Override
-    public void setSingleton(boolean singleton) {
-        this.singleton = singleton;
-    }
-
-    /**
-     * 是否是延迟实例化对象
-     *
-     * @return true: 是， false：否
-     * @see Component#lazy()
-     */
-    @Override
-    public boolean isLazy() {
-        return lazy;
-    }
-
-    /**
-     * 设置是否延迟实例化对象
-     *
-     * @param lazy
-     */
-    @Override
-    public void setLazy(boolean lazy) {
-        this.lazy = lazy;
-    }
-
-    /**
-     * 获取beanId
-     *
-     * @return bean id, 为配置返回 null
-     * @see Component#id()
-     */
-    @Override
-    public String getBeanId() {
-        return beanId;
-    }
-
-    /**
-     * 设置beanId
-     *
-     * @param beanId
-     */
-    @Override
-    public void setBeanId(String beanId) {
-        this.beanId = beanId;
-    }
-
-    /**
-     * 获取bean的描述
-     *
-     * @return bean描述
-     * @see Component#description()
-     */
-    @Override
-    public String getDescription() {
-        return description;
-    }
-
-    /**
-     * 设置描述信息
-     *
-     * @param description
-     */
-    @Override
-    public void setDescription(String description) {
-        this.description = description;
+    public AbstractBeanDefinition(String beanClassName){
+        AssertUtils.isNotNull(beanClassName, "beanClassName parameter is null or empty!");
+        try {
+            this.beanClass = Class.forName(beanClassName);
+        } catch (ClassNotFoundException e) {
+            throw new BeanBaseException(e);
+        }
+        this.beanClassName = beanClassName;
     }
 
     /**
@@ -154,12 +56,7 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
      */
     @Override
     public boolean isInterface() {
-        assertBeanClass();
         return beanClass.isInterface();
-    }
-
-    private void assertBeanClass() {
-        AssertUtils.isNotNull(beanClass, "bean 类型为null！");
     }
 
     /**
@@ -169,7 +66,6 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
      */
     @Override
     public boolean isAbstract() {
-        assertBeanClass();
         return !isInterface() && Modifier.isAbstract(beanClass.getModifiers());
     }
 
@@ -180,7 +76,6 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
      */
     @Override
     public Class<?> getSupperClass() {
-        assertBeanClass();
         return beanClass.getSuperclass();
     }
 
@@ -211,12 +106,21 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
      */
     @Override
     public Type[] getActualType() {
-        assertBeanClass();
         // 获取父类的泛型类型
         Type type = beanClass.getGenericSuperclass();
         if (type instanceof ParameterizedType){
             return ((ParameterizedType)type).getActualTypeArguments();
         }
         return new Type[0];
+    }
+
+    /**
+     * 获取bean类型全路径名称
+     *
+     * @return bean类型全路径名称
+     */
+    @Override
+    public String getBeanClassName() {
+        return beanClassName;
     }
 }

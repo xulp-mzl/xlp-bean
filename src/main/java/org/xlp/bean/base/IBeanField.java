@@ -2,7 +2,8 @@ package org.xlp.bean.base;
 
 /**
  * bean属性接口
- * <p>用来处理{@link org.xlp.bean.annotation.Component}标记类中{@link org.xlp.bean.annotation.AutoFill}标记的字段接口</p>
+ * <p>用来处理{@link org.xlp.bean.annotation.Component}标记类中一些注解标记的字段接口</p>
+ * <p>例如{@link org.xlp.bean.annotation.AutoFill}标记的字段</p>
  */
 public interface IBeanField extends IParameterizedType{
     /**
