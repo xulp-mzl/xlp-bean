@@ -3,6 +3,7 @@ package org.xlp.bean.base;
 import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.exception.BeanBaseException;
 import org.xlp.bean.impl.AutoFillBeanFields;
+import org.xlp.bean.util.ClassForNameUtils;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -58,12 +59,7 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition, IBeanFi
      * @throws BeanBaseException 假如获取beanClassName对应的Class对象出错，则抛出该异常
      */
     public AbstractBeanDefinition(String beanClassName){
-        AssertUtils.isNotNull(beanClassName, "beanClassName parameter is null or empty!");
-        try {
-            this.beanClass = Class.forName(beanClassName);
-        } catch (ClassNotFoundException e) {
-            throw new BeanBaseException(e);
-        }
+        this.beanClass = ClassForNameUtils.forName(beanClassName);
         this.beanClassName = beanClassName;
     }
 

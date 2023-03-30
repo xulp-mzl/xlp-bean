@@ -65,8 +65,8 @@ public class AppTest
 
     @Test
     public void test2(){
-        XLPProxy proxy = new XLPProxy();
-        A<String> a = proxy.createProxy(A.class);
+        XLPProxy proxy = new XLPProxy(A.class);
+        A<String> a = proxy.createProxy();
         a.fun2();
         a.fun4();
         a.fun6();

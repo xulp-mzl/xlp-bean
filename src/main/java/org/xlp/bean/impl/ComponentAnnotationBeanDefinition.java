@@ -3,6 +3,7 @@ package org.xlp.bean.impl;
 import org.xlp.bean.annotation.Component;
 import org.xlp.bean.base.AbstractBeanDefinition;
 import org.xlp.bean.base.IBeanFields;
+import org.xlp.bean.base.IBeanWrapper;
 import org.xlp.bean.exception.BeanBaseException;
 
 /**
@@ -73,7 +74,7 @@ public class ComponentAnnotationBeanDefinition extends AbstractBeanDefinition {
      */
     @Override
     public boolean isProxy() {
-        return component.proxy();
+        return component.proxy() || IBeanWrapper.class.isAssignableFrom(beanClass);
     }
 
     /**

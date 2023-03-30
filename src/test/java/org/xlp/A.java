@@ -1,9 +1,13 @@
 package org.xlp;
 
+import org.xlp.bean.annotation.MethodProxy;
+import org.xlp.bean.base.IBeanWrapper;
+
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
-public abstract class A<T> {
+public abstract class A<T> implements IBeanWrapper {
     private int age;
 
     private List<String> list;
@@ -33,12 +37,42 @@ public abstract class A<T> {
     }
 
     public void fun4(){
-        fun1();
-
         System.out.println("fun4");
-
-        fun5();
     }
-    
+    @MethodProxy(proxy = false)
     public abstract void fun6();
+
+    /**
+     * 代理对象函数执行前需要执行的操作
+     *
+     * @param method 被代理对象的方法对象
+     * @param params 被代理对象方法的参数
+     */
+    @Override
+    public void beforeExecute(Method method, Object[] params) {
+        System.out.println(BEFORE_EXECUTE_METHOD_NAME + "--" + method.getName());
+    }
+
+    /**
+     * 代理对象函数执行后需要执行的操作
+     *
+     * @param method 被代理对象的方法对象
+     * @param params 被代理对象方法的参数
+     */
+    @Override
+    public void afterExecute(Method method, Object[] params) {
+        System.out.println(AFTER_EXECUTE_METHOD_NAME + "--" + method.getName());
+    }
+
+    /**
+     * 代理对象函数执行抛出异常是需要执行的操作
+     *
+     * @param method    被代理对象的方法对象
+     * @param params    被代理对象方法的参数
+     * @param throwable 被代理对象方法抛出的异常
+     */
+    @Override
+    public void throwExecute(Method method, Object[] params, Throwable throwable) {
+        System.out.println(THROW_EXECUTE_METHOD_NAME + "--" + method.getName());
+    }
 }

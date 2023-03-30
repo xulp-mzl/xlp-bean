@@ -2,8 +2,10 @@ package org.xlp.bean.impl;
 
 import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.annotation.Component;
+import org.xlp.bean.base.IBeanCreator;
 import org.xlp.bean.base.IBeanDefinition;
 import org.xlp.bean.base.IBeansContainer;
+import org.xlp.bean.creator.BeanCreatorFactory;
 import org.xlp.bean.exception.BeanBaseException;
 import org.xlp.bean.exception.BeanDefinitionExistException;
 import org.xlp.bean.exception.NotSuchBeanException;
@@ -86,11 +88,10 @@ public class DefaultBeansContainer implements IBeansContainer {
      */
     private void createBean(IBeanDefinition beanDefinition) {
         if (beanDefinition.isSingleton() && !beanDefinition.isLazy()
-                && !beanDefinition.isInterface() && !beanDefinition.isAbstract()){
-            // 不可实例化的对象之间返回
-            return;
-        }
+                && !beanDefinition.isAbstract()){
+            IBeanCreator beanCreator = BeanCreatorFactory.getBeanCreator(beanDefinition);
 
+        }
     }
 
     /**
