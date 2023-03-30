@@ -2,6 +2,7 @@ package org.xlp.bean.base;
 
 import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.exception.BeanBaseException;
+import org.xlp.bean.impl.AutoFillBeanFields;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -11,7 +12,7 @@ import java.lang.reflect.Type;
  * bean定义抽象类
  * Create by xlp on 2023/3/25
  */
-public abstract class AbstractBeanDefinition implements IBeanDefinition{
+public abstract class AbstractBeanDefinition implements IBeanDefinition, IBeanFields{
     /**
      * bean的类型
      */
@@ -21,6 +22,23 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
      * bean的类型全路径名
      */
     private final String beanClassName;
+
+    /**
+     * 用来获取IBeanField对象信息
+     */
+    private IBeanFields beanFields;
+
+    /**
+     * 构造函数
+     * @param beanFields 获取IBeanField数组信息的对象
+     * @throws NullPointerException 假如参数为null，则抛出该异常
+     */
+    public AbstractBeanDefinition(IBeanFields beanFields){
+        AssertUtils.isNotNull(beanFields, "beanFields parameter is null!");
+        this.beanFields = beanFields;
+        this.beanClass = beanFields.getBeanClass();
+        this.beanClassName = beanClass.getName();
+    }
 
     /**
      * 构造函数
@@ -60,13 +78,13 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
     }
 
     /**
-     * 是否是抽象类
+     * 是否是抽象类或接口
      *
      * @return true：是， false：否
      */
     @Override
     public boolean isAbstract() {
-        return !isInterface() && Modifier.isAbstract(beanClass.getModifiers());
+        return Modifier.isAbstract(beanClass.getModifiers());
     }
 
     /**
@@ -96,7 +114,8 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition{
      */
     @Override
     public IBeanField[] getBeanFields() {
-        return new IBeanField[0];
+        beanFields = beanFields == null ? new AutoFillBeanFields(beanClass) : beanFields;
+        return beanFields.getBeanFields();
     }
 
     /**

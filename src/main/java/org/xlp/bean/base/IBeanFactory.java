@@ -87,15 +87,4 @@ public interface IBeanFactory {
      */
     <T> String[] getAlias(Class<T> clazz);
 
-    /**
-     * 设置bean容器
-     * @param beanContainer
-     */
-    void setBeanContainer(IBeansContainer beanContainer);
-
-    /**
-     * 获取bean容器对象
-     * @return
-     */
-    IBeansContainer getBeanContainer();
 }

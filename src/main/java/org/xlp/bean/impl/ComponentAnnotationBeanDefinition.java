@@ -2,6 +2,7 @@ package org.xlp.bean.impl;
 
 import org.xlp.bean.annotation.Component;
 import org.xlp.bean.base.AbstractBeanDefinition;
+import org.xlp.bean.base.IBeanFields;
 import org.xlp.bean.exception.BeanBaseException;
 
 /**
@@ -13,6 +14,19 @@ public class ComponentAnnotationBeanDefinition extends AbstractBeanDefinition {
      * Component注解
      */
     private Component component;
+
+    /**
+     * 构造函数
+     *
+     * @param beanFields 获取IBeanField数组信息的对象
+     * @throws NullPointerException 假如参数为null，则抛出该异常
+     * @throws IllegalArgumentException 假如不是{@link Component}注解标记的类对应的{@link IBeanFields}，则抛出该异常
+     */
+    public ComponentAnnotationBeanDefinition(IBeanFields beanFields) {
+        super(beanFields);
+        Class<?> beanClass = beanFields.getBeanClass();
+        setComponentAnnotation(beanClass);
+    }
 
     /**
      * 构造函数

@@ -4,8 +4,10 @@ import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.annotation.AutoFill;
 import org.xlp.bean.base.IBeanField;
 import org.xlp.bean.base.IBeanFields;
+import org.xlp.bean.util.PrimaryTypeUtils;
 import org.xlp.javabean.JavaBeanPropertiesDescriptor;
 import org.xlp.javabean.PropertyDescriptor;
+import org.xlp.javabean.utils.MethodNameUtil;
 
 import java.lang.reflect.Type;
 
@@ -38,7 +40,7 @@ public class AutoFillBeanFields implements IBeanFields {
         int len = pds.length;
         IBeanField[] beanFields = new IBeanField[len];
         for (int i = 0; i < len; i++) {
-            beanFields[i] = new AutoFillBeanField(pds[i]);
+            beanFields[i] = new AutoFillBeanField(pds[i], beanClass);
         }
         return beanFields;
     }
@@ -55,30 +57,50 @@ public class AutoFillBeanFields implements IBeanFields {
 
     public static class AutoFillBeanField implements IBeanField{
         /**
+         * bean类型
+         */
+        private final Class<?> beanClass;
+
+        /**
          * 字段类型
          */
-        private Class<?> fieldType;
+        private final Class<?> fieldType;
 
         /**
          * 字段名称
          */
-        private String name;
+        private final String name;
+
+        /**
+         * AutoFill注解对象
+         */
+        private final AutoFill autoFill;
+
+        /**
+         * 字段类型的泛型信息
+         */
+        private final Type[] actualTypes;
 
         /**
          * 私有构造函数，防止外部实例化该对象
          * @param pd 字段描述
          */
-        private AutoFillBeanField(PropertyDescriptor<?> pd){
+        private AutoFillBeanField(PropertyDescriptor<?> pd, Class<?> beanClass){
             this.fieldType = pd.getFiledClassType();
             this.name = pd.getFieldName();
+            this.autoFill = pd.getFieldAnnotation(AutoFill.class);
+            this.actualTypes = pd.getActualTypes();
+            this.beanClass = beanClass;
         }
 
         /**
-         * 判断指定属性是否是基本类型
+         * 判断指定属性是否是基本类型获取普通类型
+         * 假如是以上类型，则不给这类字段复制
          */
         @Override
         public boolean isPrimary() {
-            return false;
+            return PrimaryTypeUtils.isPrimaryType(fieldType)
+                    || PrimaryTypeUtils.isNormalType(fieldType);
         }
 
         /**
@@ -107,7 +129,7 @@ public class AutoFillBeanFields implements IBeanFields {
          */
         @Override
         public String getRefBeanId() {
-            return null;
+            return autoFill.refId();
         }
 
         /**
@@ -118,7 +140,7 @@ public class AutoFillBeanFields implements IBeanFields {
          */
         @Override
         public String getRefBeanClassName() {
-            return null;
+            return autoFill.refClassName();
         }
 
         /**
@@ -128,6 +150,12 @@ public class AutoFillBeanFields implements IBeanFields {
          */
         @Override
         public boolean hasSetMethod() {
+            String setMethodName = MethodNameUtil.createSetterMethodName(name);
+            try {
+                beanClass.getMethod(setMethodName, fieldType);
+                return true;
+            } catch (NoSuchMethodException ignored) {
+            }
             return false;
         }
 
@@ -138,17 +166,17 @@ public class AutoFillBeanFields implements IBeanFields {
          */
         @Override
         public Class<?> getFieldClass() {
-            return null;
+            return fieldType;
         }
 
         /**
-         * 获取泛型信息
+         * 获取字段类型泛型信息
          *
          * @return
          */
         @Override
         public Type[] getActualType() {
-            return new Type[0];
+            return actualTypes;
         }
     }
 }

@@ -1,6 +1,7 @@
 package org.xlp;
 
 import org.junit.Test;
+import org.xlp.bean.proxy.XLPProxy;
 import org.xlp.javabean.JavaBeanPropertiesDescriptor;
 
 import java.lang.reflect.Field;
@@ -60,5 +61,14 @@ public class AppTest
         System.out.println(abstractListClass.isInterface());
         System.out.println(Modifier.isAbstract(abstractListClass.getModifiers()));
         System.out.println(Modifier.isAbstract(List.class.getModifiers()));
+    }
+
+    @Test
+    public void test2(){
+        XLPProxy proxy = new XLPProxy();
+        A<String> a = proxy.createProxy(A.class);
+        a.fun2();
+        a.fun4();
+        a.fun6();
     }
 }
