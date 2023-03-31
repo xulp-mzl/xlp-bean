@@ -1,6 +1,7 @@
 package org.xlp.bean.base;
 
 import org.xlp.assertion.AssertUtils;
+import org.xlp.bean.creator.BeanCreatorFactory;
 import org.xlp.bean.exception.BeanBaseException;
 import org.xlp.bean.impl.AutoFillBeanFields;
 import org.xlp.bean.util.ClassForNameUtils;
@@ -28,6 +29,11 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition, IBeanFi
      * 用来获取IBeanField对象信息
      */
     private IBeanFields beanFields;
+
+    /**
+     * bean创建器，用来创建该bean定义相应的bean实例
+     */
+    private IBeanCreator beanCreator;
 
     /**
      * 构造函数
@@ -137,5 +143,30 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition, IBeanFi
     @Override
     public String getBeanClassName() {
         return beanClassName;
+    }
+
+    /**
+     * 获取bean创建器
+     *
+     * @return
+     * @throws BeanBaseException 假如获取bean创建器失败，则抛出该异常
+     */
+    @Override
+    public IBeanCreator getBeanCreator() {
+        // 假如bean创建器为空，则根据bean定义获取默认的创建器
+        if (beanCreator == null){
+            beanCreator = BeanCreatorFactory.getBeanCreator(this);
+        }
+        return beanCreator;
+    }
+
+    /**
+     * 设置bean创建器
+     *
+     * @param beanCreator
+     */
+    @Override
+    public void setBeanCreator(IBeanCreator beanCreator) {
+        this.beanCreator = beanCreator;
     }
 }

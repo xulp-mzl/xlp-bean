@@ -70,5 +70,6 @@ public class AppTest
         a.fun2();
         a.fun4();
         a.fun6();
+        System.out.println(Arrays.toString(A.class.getTypeParameters()));
     }
 }

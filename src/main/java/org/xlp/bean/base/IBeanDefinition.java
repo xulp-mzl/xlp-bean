@@ -75,8 +75,20 @@ public interface IBeanDefinition extends IParameterizedType{
     }
 
     /**
-     * 获取
+     * 获取 IBeanField
      * @return
      */
     IBeanField[] getBeanFields();
+
+    /**
+     * 获取bean创建器
+     * @return
+     */
+    IBeanCreator getBeanCreator();
+
+    /**
+     * 设置bean创建器
+     * @param beanCreator
+     */
+    void setBeanCreator(IBeanCreator beanCreator);
 }
