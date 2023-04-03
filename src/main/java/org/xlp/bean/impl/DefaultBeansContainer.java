@@ -55,7 +55,7 @@ public class DefaultBeansContainer implements IBeansContainer {
     public void addBeanDefinition(IBeanDefinition beanDefinition) throws BeanDefinitionExistException {
         AssertUtils.isNotNull(beanDefinition, "beanDefinition parameter is null!");
         String beanId = beanDefinition.getBeanId();
-        String className = XLPStringUtil.emptyTrim(beanDefinition.getBeanClassName());
+        String className = beanDefinition.getBeanClassName();
         synchronized (this){
             // 判读是否已经存在相应的bean定义信息，如果存在，则抛出相应的异常
             IBeanDefinition beanDefinition1;
@@ -155,6 +155,32 @@ public class DefaultBeansContainer implements IBeansContainer {
     public void addBeanDefinition(Class<?> beanClass) throws BeanDefinitionExistException {
         AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
         this.addBeanDefinition(new ComponentAnnotationBeanDefinition(beanClass));
+    }
+
+    /**
+     * 判断bean定义已在容器中存在的类型
+     *
+     * @param beanDefinition
+     * @return
+     */
+    @Override
+    public BeanDefinitionExistType judgeBeanDefinition(IBeanDefinition beanDefinition) {
+        if (beanDefinition == null) return BeanDefinitionExistType.NONE;
+        String beanId = beanDefinition.getBeanId();
+        String className = beanDefinition.getBeanClassName();
+        if(!XLPStringUtil.isEmpty(beanId)){
+            if (beanIdBeanDefinitionMap.get(beanId) != null){
+                return BeanDefinitionExistType.BY_BEAN_ID;
+            }
+            if (beanClassNameBeanDefinitionMap.get(className) != null){
+                return BeanDefinitionExistType.BY_BEAN_CLASS_NAME;
+            }
+        } else {
+            if (beanClassNameBeanDefinitionMap.get(className) != null){
+                return BeanDefinitionExistType.BY_BEAN_CLASS_NAME;
+            }
+        }
+        return BeanDefinitionExistType.NONE;
     }
 
     /**

@@ -19,7 +19,7 @@ class BeanDefinitionFinder {
      * @return
      * @throws BeanBaseException 假如未找到，抛出该异常
      */
-    public static IBeanDefinition find(IBeanField beanField,
+     static IBeanDefinition find(IBeanField beanField,
                                        Map<String, IBeanDefinition> beanIdBeanDefinitionMap,
                                        Map<String, IBeanDefinition> beanClassNameBeanDefinitionMap){
         IBeanDefinition beanDefinition;

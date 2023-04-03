@@ -32,8 +32,8 @@
       <artifactId>xlp-core</artifactId>
       <version>${xlp.jar.versionNo}</version>
       <optional>true</optional>
-      <scope>system</scope>
-      <systemPath>${basedir}/xlp-core-0.0.1-SNAPSHOT.jar</systemPath>
+      <!--<scope>system</scope>
+      <systemPath>${basedir}/xlp-core-0.0.1-SNAPSHOT.jar</systemPath>-->
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
     <dependency>
