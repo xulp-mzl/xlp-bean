@@ -7,7 +7,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
-public abstract class A<T> implements IBeanWrapper {
+public class A<T, C , z extends B> implements IBeanWrapper {
     private int age;
 
     private List<String> list;
@@ -16,7 +16,9 @@ public abstract class A<T> implements IBeanWrapper {
 
     List<T> list1;
 
-    List<List<T>> list2;
+    List<? super String> list2;
+
+    List<? extends T> list3;
 
     B b;
 
@@ -40,7 +42,7 @@ public abstract class A<T> implements IBeanWrapper {
         System.out.println("fun4");
     }
     @MethodProxy(proxy = false)
-    public abstract void fun6();
+    public void fun6(){}
 
     /**
      * 代理对象函数执行前需要执行的操作

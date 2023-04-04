@@ -144,6 +144,16 @@ public class AutoFillBeanFields implements IBeanFields {
         }
 
         /**
+         * 字段是否必须赋值
+         *
+         * @return
+         */
+        @Override
+        public boolean isRequired() {
+            return autoFill.required();
+        }
+
+        /**
          * 获取该字段是否有相应的set函数
          *
          * @return

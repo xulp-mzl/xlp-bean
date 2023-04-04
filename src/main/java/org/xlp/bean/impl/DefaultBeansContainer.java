@@ -8,6 +8,7 @@ import org.xlp.bean.base.IBeanField;
 import org.xlp.bean.base.IBeansContainer;
 import org.xlp.bean.exception.BeanBaseException;
 import org.xlp.bean.exception.BeanDefinitionExistException;
+import org.xlp.bean.exception.BeanExistException;
 import org.xlp.bean.exception.NotSuchBeanException;
 import org.xlp.utils.XLPStringUtil;
 
@@ -39,7 +40,7 @@ public class DefaultBeansContainer implements IBeansContainer {
     protected final Map<String, Object> beanMap = new ConcurrentHashMap<>(8);
 
     /**
-     * 存储bean类名 与 bean对象 映射集合
+     * 存储bean类名与 bean对象 映射集合
      * <p>key: beanClassName , value: bean对象</p>
      */
     protected final Map<String, Object> beanClassNameBeanMap = new ConcurrentHashMap<>(8);
@@ -144,7 +145,6 @@ public class DefaultBeansContainer implements IBeansContainer {
 
     /**
      * 向容器中添加指定类型的bean定义对象
-     * <p>注意：使用该方法时，传的Class对象必须要有{@link org.xlp.bean.annotation.Component}注解标记，否则会抛出异常</p>
      *
      * @param beanClass bean定义对象
      * @throws BeanDefinitionExistException 假如容器中存在，则抛出该异常
@@ -154,7 +154,12 @@ public class DefaultBeansContainer implements IBeansContainer {
     @Override
     public void addBeanDefinition(Class<?> beanClass) throws BeanDefinitionExistException {
         AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
-        this.addBeanDefinition(new ComponentAnnotationBeanDefinition(beanClass));
+        Component component = beanClass.getAnnotation(Component.class);
+        if (component != null) {
+            this.addBeanDefinition(new ComponentAnnotationBeanDefinition(beanClass));
+        } else {
+            this.addBeanDefinition(new CustomRegisteredBeanDefinition(beanClass));
+        }
     }
 
     /**
@@ -181,6 +186,60 @@ public class DefaultBeansContainer implements IBeansContainer {
             }
         }
         return BeanDefinitionExistType.NONE;
+    }
+
+    /**
+     * 向容器中添加指定ID的bean对象
+     *
+     * @param bean
+     * @param beanId
+     * @throws BeanExistException 假如容器中存指定ID的bean，则抛出该异常
+     */
+    @Override
+    public <T> void addBean(T bean, String beanId) throws BeanExistException {
+
+    }
+
+    /**
+     * 向容器中添加指定类型的bean
+     *
+     * @param bean
+     * @param beanClass
+     * @throws BeanExistException 假如容器中存指定类型的bean，则抛出该异常
+     */
+    @Override
+    public <T> void addBean(T bean, Class<? super T> beanClass) throws BeanExistException {
+
+    }
+
+    /**
+     * 判断是否有指定ID的bean
+     *
+     * @param beanId ID
+     * @return true：有，false：没有
+     */
+    @Override
+    public boolean hasBean(String beanId) {
+        boolean has = beanMap.containsKey(beanId);
+        if (has) return true;
+        IBeanDefinition beanDefinition = beanIdBeanDefinitionMap.get(beanId);
+        return beanDefinition != null && !beanDefinition.isAbstract();
+    }
+
+    /**
+     * 判断是否有指定类型的bean
+     *
+     * @param beanClass
+     * @return true：有，false：没有
+     * @throws NullPointerException 假如参数为空，则抛出该异常
+     */
+    @Override
+    public boolean hasBean(Class<?> beanClass) {
+        AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
+        String beanClassName = beanClass.getName();
+        boolean has = beanClassNameBeanMap.containsKey(beanClassName);
+        if (has) return true;
+        return true;
     }
 
     /**

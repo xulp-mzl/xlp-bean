@@ -1,6 +1,7 @@
 package org.xlp;
 
 import org.junit.Test;
+import org.xlp.bean.impl.DefaultBeansContainer;
 import org.xlp.bean.proxy.XLPProxy;
 import org.xlp.javabean.JavaBeanPropertiesDescriptor;
 
@@ -66,10 +67,18 @@ public class AppTest
     @Test
     public void test2(){
         XLPProxy proxy = new XLPProxy(A.class);
-        A<String> a = proxy.createProxy();
+        A a = proxy.createProxy();
         a.fun2();
         a.fun4();
         a.fun6();
         System.out.println(Arrays.toString(A.class.getTypeParameters()));
+    }
+
+    @Test
+    public void test3(){
+        DefaultBeansContainer beansContainer = new DefaultBeansContainer();
+        beansContainer.hasBean(A.class);
+        A a = new A();
+        beansContainer.hasBean(a.getClass());
     }
 }

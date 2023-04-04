@@ -19,4 +19,9 @@ public @interface AutoFill {
      * 引用bean类全路径名称
      */
     String refClassName() default "";
+
+    /**
+     * 标记是否必须赋值
+     */
+    boolean required() default true;
 }

@@ -37,6 +37,12 @@ public interface IBeanField extends IParameterizedType{
     String getRefBeanClassName();
 
     /**
+     * 字段是否必须赋值
+     * @return
+     */
+    boolean isRequired();
+
+    /**
      * 获取该字段是否有相应的set函数
      * @return
      */

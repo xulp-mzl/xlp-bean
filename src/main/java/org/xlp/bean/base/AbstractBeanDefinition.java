@@ -7,7 +7,6 @@ import org.xlp.bean.impl.AutoFillBeanFields;
 import org.xlp.bean.util.ClassForNameUtils;
 
 import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 /**
@@ -121,18 +120,13 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition, IBeanFi
     }
 
     /**
-     * 获取父类泛型信息，假如无泛型类型，则返回空数组
+     * 获取类泛型信息，假如无泛型类型，则返回空数组
      *
      * @return
      */
     @Override
     public Type[] getActualType() {
-        // 获取父类的泛型类型
-        Type type = beanClass.getGenericSuperclass();
-        if (type instanceof ParameterizedType){
-            return ((ParameterizedType)type).getActualTypeArguments();
-        }
-        return new Type[0];
+        return beanClass.getTypeParameters();
     }
 
     /**

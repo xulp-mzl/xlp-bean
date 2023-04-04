@@ -1,6 +1,7 @@
 package org.xlp.bean.base;
 
 import org.xlp.bean.exception.BeanDefinitionExistException;
+import org.xlp.bean.exception.BeanExistException;
 
 /**
  * bean 容器接口，存放所有的bean定义信息
@@ -38,6 +39,38 @@ public interface IBeansContainer extends IBeanFactory{
      * @return
      */
     BeanDefinitionExistType judgeBeanDefinition(IBeanDefinition beanDefinition);
+
+    /**
+     * 向容器中添加指定ID的bean对象
+     * @param bean
+     * @param beanId
+     * @param <T>
+     * @throws BeanExistException 假如容器中存指定ID的bean，则抛出该异常
+     */
+    <T> void addBean(T bean, String beanId) throws BeanExistException;
+
+    /**
+     * 向容器中添加指定类型的bean
+     * @param bean
+     * @param beanClass
+     * @param <T>
+     * @throws BeanExistException 假如容器中存指定类型的bean，则抛出该异常
+     */
+    <T> void addBean(T bean, Class<? super T> beanClass) throws BeanExistException;
+
+    /**
+     * 判断是否有指定ID的bean
+     * @param beanId ID
+     * @return true：有，false：没有
+     */
+    boolean hasBean(String beanId);
+
+    /**
+     * 判断是否有指定类型的bean
+     * @param beanClass
+     * @return true：有，false：没有
+     */
+    boolean hasBean(Class<?> beanClass);
 
     /**
      * bean定义存在类型
