@@ -10,6 +10,7 @@ import org.xlp.bean.exception.BeanBaseException;
 import org.xlp.bean.exception.BeanDefinitionExistException;
 import org.xlp.bean.exception.BeanExistException;
 import org.xlp.bean.exception.NotSuchBeanException;
+import org.xlp.bean.object.BeanObject;
 import org.xlp.utils.XLPStringUtil;
 
 import java.util.ArrayList;
@@ -41,9 +42,9 @@ public class DefaultBeansContainer implements IBeansContainer {
 
     /**
      * 存储bean类名与 bean对象 映射集合
-     * <p>key: beanClassName , value: bean对象</p>
+     * <p>key: beanClass , value: {@link BeanObject}对象</p>
      */
-    protected final Map<String, Object> beanClassNameBeanMap = new ConcurrentHashMap<>(8);
+    protected final Map<Class<?>, BeanObject[]> beanClassNameBeanMap = new ConcurrentHashMap<>(8);
 
     /**
      * 向容器中添加bean定义对象
@@ -135,7 +136,7 @@ public class DefaultBeansContainer implements IBeansContainer {
 
         if(!XLPStringUtil.isEmpty(beanId)){
             beanMap.put(beanId, bean);
-            beanClassNameBeanMap.put(className, bean);
+            //beanClassNameBeanMap.put(className, bean);
         } else {
 
         }
@@ -177,13 +178,9 @@ public class DefaultBeansContainer implements IBeansContainer {
             if (beanIdBeanDefinitionMap.get(beanId) != null){
                 return BeanDefinitionExistType.BY_BEAN_ID;
             }
-            if (beanClassNameBeanDefinitionMap.get(className) != null){
-                return BeanDefinitionExistType.BY_BEAN_CLASS_NAME;
-            }
-        } else {
-            if (beanClassNameBeanDefinitionMap.get(className) != null){
-                return BeanDefinitionExistType.BY_BEAN_CLASS_NAME;
-            }
+        }
+        if (beanClassNameBeanDefinitionMap.get(className) != null){
+            return BeanDefinitionExistType.BY_BEAN_CLASS_NAME;
         }
         return BeanDefinitionExistType.NONE;
     }
