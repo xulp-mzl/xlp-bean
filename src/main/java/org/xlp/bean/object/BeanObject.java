@@ -16,6 +16,11 @@ public class BeanObject implements IWrapper {
     private Type[] types;
 
     /**
+     * bean类型
+     */
+    private Class<?> beanClass;
+
+    /**
      * 原始对象
      */
     private Object object;
@@ -34,8 +39,7 @@ public class BeanObject implements IWrapper {
     }
 
     public BeanObject(Object object, IBeanDefinition beanDefinition) {
-        this.object = object;
-        this.beanDefinition = beanDefinition;
+       this(null, object, beanDefinition);
     }
 
     /**
@@ -72,6 +76,10 @@ public class BeanObject implements IWrapper {
         this.beanDefinition = beanDefinition;
     }
 
+    public Class<?> getBeanClass() {
+        return beanDefinition == null ? null : beanDefinition.getBeanClass();
+    }
+
     /**
      * 对比泛型类型是否一致
      * @param types
@@ -90,5 +98,22 @@ public class BeanObject implements IWrapper {
 
 
         return false;
+    }
+
+    /**
+     * 比较类型和泛型是否相同
+     * @param beanClass bean类型
+     * @param types 泛型信息
+     * @return true: 相同，false：不同
+     */
+    public boolean compareClassAndTypes(Class<?> beanClass, Type[] types){
+        Class<?> _beanClass = getBeanClass();
+        if (beanClass == null && _beanClass == null){
+            return true;
+        }
+        if (beanClass == null || _beanClass == null){
+            return false;
+        }
+        return compareTypes(types) && beanClass.isAssignableFrom(_beanClass);
     }
 }
