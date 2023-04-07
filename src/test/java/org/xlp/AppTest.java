@@ -3,6 +3,7 @@ package org.xlp;
 import org.junit.Test;
 import org.xlp.bean.impl.DefaultBeansContainer;
 import org.xlp.bean.proxy.XLPProxy;
+import org.xlp.bean.util.ParameterizedTypeUtils;
 import org.xlp.javabean.JavaBeanPropertiesDescriptor;
 
 import java.lang.reflect.Field;
@@ -75,10 +76,16 @@ public class AppTest
     }
 
     @Test
-    public void test3(){
+    public <Z, C> void test3(){
         DefaultBeansContainer beansContainer = new DefaultBeansContainer();
         beansContainer.hasBean(A.class);
         A a = new A();
         beansContainer.hasBean(a.getClass());
+        Type[] classTypes = ParameterizedTypeUtils.getClassTypes(B.class);
+        System.out.println(Arrays.toString(classTypes));
+        List<Z> list = new ArrayList<>();
+        List<List<C>> integers = new ArrayList<>();
+        list = (List<Z>) integers;
+
     }
 }

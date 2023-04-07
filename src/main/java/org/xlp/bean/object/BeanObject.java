@@ -1,7 +1,9 @@
 package org.xlp.bean.object;
 
+import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.base.IBeanDefinition;
 import org.xlp.bean.base.IWrapper;
+import org.xlp.bean.util.ParameterizedTypeUtils;
 import org.xlp.utils.XLPArrayUtil;
 
 import java.lang.reflect.Type;
@@ -18,28 +20,35 @@ public class BeanObject implements IWrapper {
     /**
      * bean类型
      */
-    private Class<?> beanClass;
+    private final Class<?> beanClass;
 
     /**
      * 原始对象
      */
-    private Object object;
+    private final Object object;
 
     /**
-     * 对象对应的bean定义对象
+     * 构造函数
+     * @param beanDefinition bean定义
+     * @param bean 对应的bean对象
+     * @throws NullPointerException 假如第一个参数为null，则抛出该异常
      */
-    private IBeanDefinition beanDefinition;
-
-    public BeanObject(){}
-
-    public BeanObject(Type[] types, Object object, IBeanDefinition beanDefinition) {
-        this.types = types;
-        this.object = object;
-        this.beanDefinition = beanDefinition;
+    public BeanObject(IBeanDefinition beanDefinition, Object bean) {
+        AssertUtils.isNotNull(beanDefinition, "beanDefinition parameter is null!");
+        this.types = beanDefinition.getActualType();
+        this.beanClass = beanDefinition.getBeanClass();
+        this.object = bean;
     }
 
-    public BeanObject(Object object, IBeanDefinition beanDefinition) {
-       this(null, object, beanDefinition);
+    /**
+     * 构造函数
+     * @param bean bean对象
+     * @param types 相应的泛型信息
+     */
+    public BeanObject(Object bean, Type[] types) {
+       this.types = types;
+       this.object = bean;
+       this.beanClass = bean.getClass();
     }
 
     /**
@@ -56,28 +65,8 @@ public class BeanObject implements IWrapper {
         return types;
     }
 
-    public void setTypes(Type[] types) {
-        this.types = types;
-    }
-
-    public Object getObject() {
-        return object;
-    }
-
-    public void setObject(Object object) {
-        this.object = object;
-    }
-
-    public IBeanDefinition getBeanDefinition() {
-        return beanDefinition;
-    }
-
-    public void setBeanDefinition(IBeanDefinition beanDefinition) {
-        this.beanDefinition = beanDefinition;
-    }
-
     public Class<?> getBeanClass() {
-        return beanDefinition == null ? null : beanDefinition.getBeanClass();
+        return beanClass;
     }
 
     /**
@@ -86,18 +75,15 @@ public class BeanObject implements IWrapper {
      * @return true: 一致，false：不一致
      */
     public boolean compareTypes(Type[] types){
+        if (XLPArrayUtil.isEmpty(this.types)){
+            this.types = ParameterizedTypeUtils.getClassTypes(this.beanClass);
+        }
+
         if (XLPArrayUtil.isEmpty(this.types) || XLPArrayUtil.isEmpty(types)){
             return true;
         }
-        // 判断泛型信息长度是否相同，不相同则返回false
-        if (types.length != this.types.length){
-            return false;
-        }
 
-        int len = types.length;
-
-
-        return false;
+        return ParameterizedTypeUtils.equalsTypes(this.types, types);
     }
 
     /**

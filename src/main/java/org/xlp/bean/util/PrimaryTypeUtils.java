@@ -32,6 +32,7 @@ public class PrimaryTypeUtils {
                 || Collection.class.isAssignableFrom(clazz)
                 || Map.class.isAssignableFrom(clazz)
                 || Number.class.isAssignableFrom(clazz)
-                || Runtime.class.isAssignableFrom(clazz));
+                || Runtime.class.isAssignableFrom(clazz)
+                || clazz.isEnum());
     }
 }

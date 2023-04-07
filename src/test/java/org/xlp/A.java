@@ -20,6 +20,10 @@ public class A<T, C , z extends B> implements IBeanWrapper {
 
     List<? extends T> list3;
 
+    List<List<String>> list4;
+
+    List<List<? extends String>> list5;
+
     B b;
 
     private void fun1(){
