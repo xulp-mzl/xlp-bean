@@ -90,12 +90,27 @@ public class ParameterizedTypeUtils {
                 continue;
             }
 
-            if ((type1 instanceof Class) && type1.equals(type2)){
-                continue;
-            }
-
             if (type1 instanceof WildcardType){
-
+                WildcardType wildcardType = ((WildcardType) type1);
+                Type[] lowerBounds = wildcardType.getLowerBounds();
+                Type[] upperBounds = wildcardType.getUpperBounds();
+                if (type2 instanceof Class){
+                    if (lowerBounds.length == 1 && lowerBounds[0] instanceof Class){
+                        return ((Class<?>) type2).isAssignableFrom(((Class<?>) lowerBounds[0]));
+                    }
+                    if (upperBounds.length == 1 && upperBounds[0] instanceof Class){
+                        return ((Class<?>) upperBounds[0]).isAssignableFrom(((Class<?>) type2));
+                    }
+                } else if (type2 instanceof WildcardType){
+                    Type[] lowerBounds2 = wildcardType.getLowerBounds();
+                    Type[] upperBounds2 = wildcardType.getUpperBounds();
+                    if (lowerBounds.length > 0 && lowerBounds2.length == lowerBounds.length){
+                        return equalsTypes(lowerBounds, lowerBounds2);
+                    }
+                    if (upperBounds.length > 0 && upperBounds2.length == upperBounds.length){
+                        return equalsTypes(upperBounds, upperBounds2);
+                    }
+                }
             }
 
             if ((type1 instanceof ParameterizedType) && (type2 instanceof ParameterizedType)){

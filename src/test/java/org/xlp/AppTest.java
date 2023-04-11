@@ -6,10 +6,7 @@ import org.xlp.bean.proxy.XLPProxy;
 import org.xlp.bean.util.ParameterizedTypeUtils;
 import org.xlp.javabean.JavaBeanPropertiesDescriptor;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,6 +46,10 @@ public class AppTest
                 Type[] actualTypeArguments = pType.getActualTypeArguments();
                 for (Type actualTypeArgument : actualTypeArguments) {
                     System.out.println(actualTypeArgument + "----" + actualTypeArgument.getClass() + "----" + actualTypeArgument.getTypeName());
+                    if(actualTypeArgument instanceof WildcardType){
+                        System.out.println(Arrays.toString(((WildcardType) actualTypeArgument).getLowerBounds()));
+                        System.out.println(Arrays.toString(((WildcardType) actualTypeArgument).getUpperBounds()));
+                    }
                 }
             }
 
@@ -87,5 +88,11 @@ public class AppTest
         List<List<C>> integers = new ArrayList<>();
         list = (List<Z>) integers;
 
+    }
+
+    @Test
+    public void test4(){
+        Integer i = 2;
+        System.out.println(Integer.class.isInstance(null));
     }
 }

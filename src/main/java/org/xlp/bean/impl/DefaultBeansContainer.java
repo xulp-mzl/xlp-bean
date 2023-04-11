@@ -1,27 +1,29 @@
 package org.xlp.bean.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.annotation.Component;
 import org.xlp.bean.base.IBeanCreator;
 import org.xlp.bean.base.IBeanDefinition;
 import org.xlp.bean.base.IBeanField;
 import org.xlp.bean.base.IBeansContainer;
-import org.xlp.bean.exception.BeanBaseException;
-import org.xlp.bean.exception.BeanDefinitionExistException;
-import org.xlp.bean.exception.BeanExistException;
-import org.xlp.bean.exception.NotSuchBeanException;
+import org.xlp.bean.exception.*;
 import org.xlp.bean.object.BeanObject;
+import org.xlp.bean.util.ClassForNameUtils;
+import org.xlp.utils.XLPArrayUtil;
 import org.xlp.utils.XLPStringUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Type;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * bean 容器的默认实现
  */
 public class DefaultBeansContainer implements IBeansContainer {
+    private final static Logger LOGGER = LoggerFactory.getLogger(DefaultBeansContainer.class);
+
     /**
      * 存储bean id 与 {@link IBeanDefinition} 映射集合
      * <p>key: beanId, value: {@link IBeanDefinition}对象</p>
@@ -36,15 +38,15 @@ public class DefaultBeansContainer implements IBeansContainer {
 
     /**
      * 存储bean id 与 bean对象 映射集合
-     * <p>key: beanId, value: bean对象</p>
+     * <p>key: beanId, value: {@link BeanObject}对象</p>
      */
-    protected final Map<String, Object> beanMap = new ConcurrentHashMap<>(8);
+    protected final Map<String, BeanObject> beanMap = new ConcurrentHashMap<>(8);
 
     /**
      * 存储bean类名与 bean对象 映射集合
      * <p>key: beanClass , value: {@link BeanObject}对象</p>
      */
-    protected final Map<Class<?>, BeanObject[]> beanClassNameBeanMap = new ConcurrentHashMap<>(8);
+    protected final Map<Class<?>, BeanObject[]> beanClassBeanMap = new ConcurrentHashMap<>(8);
 
     /**
      * 向容器中添加bean定义对象
@@ -135,7 +137,7 @@ public class DefaultBeansContainer implements IBeansContainer {
         }
 
         if(!XLPStringUtil.isEmpty(beanId)){
-            beanMap.put(beanId, bean);
+            //beanMap.put(beanId, bean);
             //beanClassNameBeanMap.put(className, bean);
         } else {
 
@@ -234,7 +236,7 @@ public class DefaultBeansContainer implements IBeansContainer {
     public boolean hasBean(Class<?> beanClass) {
         AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
         String beanClassName = beanClass.getName();
-        boolean has = beanClassNameBeanMap.containsKey(beanClassName);
+        boolean has = beanClassBeanMap.containsKey(beanClass);
         if (has) return true;
         return true;
     }
@@ -352,10 +354,68 @@ public class DefaultBeansContainer implements IBeansContainer {
      * @param beanClass
      * @return
      * @throws NotSuchBeanException
+     * @throws NullPointerException 假如参数为null，则抛出该异常
      */
     @Override
     public <T, I> T getBean(Class<I> beanClass) throws NotSuchBeanException {
+        return getBean(beanClass, new Type[0]);
+    }
+
+    /**
+     * 获取该id的bean对象
+     *
+     * @param beanClass bean类型
+     * @param types     目标泛型类型
+     * @return bean 对象
+     * @throws BeanBaseException 假如或bean过程失败，则抛出该异常
+     * @throws NullPointerException 假如第一个参数为null，则抛出该异常
+     */
+    @Override
+    public <T, I> T getBean(Class<I> beanClass, Type[] types) throws BeanBaseException {
+        AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
+        BeanObject[] beanObjects = beanClassBeanMap.get(beanClass);
+        if (XLPArrayUtil.isEmpty(beanObjects)){
+            Set<BeanObject> beanObjectSet = new HashSet<>();
+            beanClassBeanMap.forEach((key, value) -> {
+                if (beanClass.isAssignableFrom(key)){
+                    beanObjectSet.addAll(Arrays.asList(value));
+                } else if(key.isAssignableFrom(beanClass)){
+                    for (BeanObject beanObject : value) {
+                        if (beanClass.isInstance(beanObject.getRawObject())){
+                            beanObjectSet.add(beanObject);
+                        }
+                    }
+                }
+            });
+            // 未找到，从Bean定义中去查找
+            if (beanObjectSet.isEmpty()){
+
+            } else {
+                return getBean(beanClass, types, beanObjectSet.toArray(new BeanObject[0]));
+            }
+        } else {
+            return getBean(beanClass, types, beanObjects);
+        }
         return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T, I> T getBean(Class<I> beanClass, Type[] types, BeanObject[] beanObjects) {
+        BeanObject beanObject = null;
+        int count = 0;
+        for (BeanObject object : beanObjects) {
+            beanObject = object;
+            if (beanObject.compareClassAndTypes(beanClass, types)) {
+                count++;
+            }
+        }
+        if (count == 0) {
+            throw new NotSuchBeanException("未适配到类型为【" + beanClass.getName() + "】的bean实例！");
+        }
+        if (count > 1) {
+            throw new MultiplyBeanException(beanClass);
+        }
+        return (T) beanObject.getRawObject();
     }
 
     /**
@@ -364,26 +424,11 @@ public class DefaultBeansContainer implements IBeansContainer {
      * @param className 类全路径名称
      * @return bean 对象
      * @throws BeanBaseException 假如或bean过程失败，则抛出该异常
+     * @throws NullPointerException 假如参数为null或空，则抛出该异常
      */
     @Override
     public <T> T getBeanByClassName(String className) throws BeanBaseException {
-        return null;
-    }
-
-    /**
-     * 获取给的类的所有对应的beanId数据
-     *
-     * @param clazz 要操作的类
-     * @return Id数据
-     */
-    @Override
-    public <T> String[] getAlias(Class<T> clazz) {
-        List<String> beanIds = new ArrayList<>();
-        beanIdBeanDefinitionMap.forEach((key, value) -> {
-            if (value.getBeanClass() == clazz){
-                beanIds.add(key);
-            }
-        });
-        return beanIds.toArray(new String[0]);
+        AssertUtils.isNotNull(className, "className parameter is null or empty!");
+        return getBean(ClassForNameUtils.forName(className));
     }
 }
