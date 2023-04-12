@@ -109,7 +109,7 @@ public abstract class AbstractBeanDefinition implements IBeanDefinition, IBeanFi
     }
 
     /**
-     * 获取
+     * 获取IBeanField对象
      *
      * @return
      */

@@ -28,6 +28,11 @@ public class BeanObject implements IWrapper {
     private final Object object;
 
     /**
+     * Bean定义对象
+     */
+    private IBeanDefinition beanDefinition;
+
+    /**
      * 构造函数
      * @param beanDefinition bean定义
      * @param bean 对应的bean对象
@@ -35,6 +40,7 @@ public class BeanObject implements IWrapper {
      */
     public BeanObject(IBeanDefinition beanDefinition, Object bean) {
         AssertUtils.isNotNull(beanDefinition, "beanDefinition parameter is null!");
+        this.beanDefinition = beanDefinition;
         this.types = beanDefinition.getActualType();
         this.beanClass = beanDefinition.getBeanClass();
         this.object = bean;
@@ -70,6 +76,14 @@ public class BeanObject implements IWrapper {
     }
 
     /**
+     * 获取Bean定义
+     * @return
+     */
+    public IBeanDefinition getBeanDefinition() {
+        return beanDefinition;
+    }
+
+    /**
      * 对比泛型类型是否一致
      * @param types
      * @return true: 一致，false：不一致
@@ -100,6 +114,6 @@ public class BeanObject implements IWrapper {
         if (beanClass == null || _beanClass == null){
             return false;
         }
-        return compareTypes(types) && beanClass.isAssignableFrom(_beanClass);
+        return beanClass.isAssignableFrom(_beanClass) &&  compareTypes(types);
     }
 }

@@ -11,7 +11,6 @@ import org.xlp.bean.base.IBeansContainer;
 import org.xlp.bean.exception.*;
 import org.xlp.bean.object.BeanObject;
 import org.xlp.bean.util.ClassForNameUtils;
-import org.xlp.utils.XLPArrayUtil;
 import org.xlp.utils.XLPStringUtil;
 
 import java.lang.reflect.Type;
@@ -47,6 +46,18 @@ public class DefaultBeansContainer implements IBeansContainer {
      * <p>key: beanClass , value: {@link BeanObject}对象</p>
      */
     protected final Map<Class<?>, BeanObject[]> beanClassBeanMap = new ConcurrentHashMap<>(8);
+
+    /**
+     * 存储bean id 与 bean对象(未给字段设置值的对象) 映射集合
+     * <p>key: beanId, value: {@link BeanObject}对象</p>
+     */
+    protected final Map<String, BeanObject> beanHalfMap = new ConcurrentHashMap<>(8);
+
+    /**
+     * 存储bean类名与 bean对象(未给字段设置值的对象) 映射集合
+     * <p>key: beanClass , value: {@link BeanObject}对象</p>
+     */
+    protected final Map<Class<?>, BeanObject[]> beanClassHalfBeanMap = new ConcurrentHashMap<>(8);
 
     /**
      * 向容器中添加bean定义对象
@@ -110,40 +121,55 @@ public class DefaultBeansContainer implements IBeansContainer {
      */
     protected Object doCreateBean(IBeanDefinition beanDefinition) {
         String beanId = beanDefinition.getBeanId();
-        String className = beanDefinition.getBeanClassName();
-
-        Object bean = beanMap.get(beanId);
-        //假如缓存中存在该bean，则则直接返回
-        if (bean != null) return bean;
+        Class<?> beanClass = beanDefinition.getBeanClass();
+        boolean beanIdIsBlank = XLPStringUtil.isEmpty(beanId);
 
         // 判断bean是否
         IBeanCreator beanCreator = beanDefinition.getBeanCreator();
         // 假如没有创建器，则直接跳过
         if (beanCreator == null) return null;
         // 获取bean实例，即为未给其他属性赋值的bean实例
-        bean = beanCreator.createBean();
-        IBeanField[] beanFields = beanDefinition.getBeanFields();
-        //判断是否有属性要设置，有直接把半处理化bean放入临时缓存
-        if (beanFields != null){
-            for (IBeanField beanField : beanFields) {
-                if (!beanField.hasSetMethod()) continue;
-                //TODO
-                String _beanId = beanField.getRefBeanId();
-                String _className = beanField.getRefBeanClassName();
-                //TODO 有问题
-                bean = doCreateBean(BeanDefinitionFinder.find(beanField, beanIdBeanDefinitionMap,
-                        beanClassNameBeanDefinitionMap));
+        Object bean = beanCreator.createBean();
+        BeanObject beanObject = new BeanObject(beanDefinition, bean);
+        try {
+            if (!beanIdIsBlank){
+                beanHalfMap.put(beanId, beanObject);
             }
+            addBeanObjectToBeanClassHalfBeanMap(beanDefinition, beanObject);
+
+            //获取bean要注入的属性
+            IBeanField[] beanFields = beanDefinition.getBeanFields();
+            if (beanFields != null){
+                for (IBeanField beanField : beanFields) {
+                    //跳过不是字段适配的属性
+                    if (beanField.isArray() || beanField.isPrimary() || !beanField.hasSetMethod()){
+                        continue;
+                    }
+                    String fieldId = beanField.getRefBeanId();
+
+                }
+            }
+
+        } finally {
+            if (!beanIdIsBlank){
+                beanHalfMap.remove(beanId);
+            }
+            beanClassHalfBeanMap.remove(beanClass);
         }
-
-        if(!XLPStringUtil.isEmpty(beanId)){
-            //beanMap.put(beanId, bean);
-            //beanClassNameBeanMap.put(className, bean);
-        } else {
-
-        }
-
         return bean;
+    }
+
+    private void addBeanObjectToBeanClassHalfBeanMap(IBeanDefinition beanDefinition, BeanObject beanObject) {
+        beanClassHalfBeanMap.compute(beanDefinition.getBeanClass(), (key, value) -> {
+            if (value == null){
+                return new BeanObject[]{beanObject};
+            }
+            BeanObject[] beanObjects = value;
+            int len = beanObjects.length;
+            beanObjects = Arrays.copyOf(beanObjects, len + 1);
+            beanObjects[len] = beanObject;
+            return beanObjects;
+        });
     }
 
     /**
@@ -161,7 +187,7 @@ public class DefaultBeansContainer implements IBeansContainer {
         if (component != null) {
             this.addBeanDefinition(new ComponentAnnotationBeanDefinition(beanClass));
         } else {
-            this.addBeanDefinition(new CustomRegisteredBeanDefinition(beanClass));
+            this.addBeanDefinition(new CustomClassOfBeanDefinition(beanClass));
         }
     }
 
@@ -343,9 +369,34 @@ public class DefaultBeansContainer implements IBeansContainer {
      * @return
      * @throws NotSuchBeanException
      */
+    @SuppressWarnings("unchecked")
     @Override
     public <T> T getBean(String beanId) throws NotSuchBeanException {
-        return null;
+        BeanObject beanObject = null;
+        if (!XLPStringUtil.isEmpty(beanId)){
+            refreshBeanHalfMap(beanId);
+            beanObject = beanMap.get(beanId);
+
+            if (beanObject == null){
+                // 未找到再次重bean定义中查找
+                IBeanDefinition beanDefinition = beanIdBeanDefinitionMap.get(beanId);
+                if (beanDefinition != null){
+                    if (beanDefinition.isSingleton()){
+                        synchronized (beanDefinition.getBeanClass()){
+                            refreshBeanHalfMap(beanId);
+                            beanObject = beanMap.get(beanId);
+                            return (T) (beanObject == null ? doCreateBean(beanDefinition) : beanObject.getRawObject());
+                        }
+                    }
+                    return (T) doCreateBean(beanDefinition);
+                }
+            }
+        }
+
+        if (beanObject == null){
+            throw new NotSuchBeanException("未适配到id为【" + beanId + "】的bean实例！");
+        }
+        return (T) beanObject.getRawObject();
     }
 
     /**
@@ -370,37 +421,80 @@ public class DefaultBeansContainer implements IBeansContainer {
      * @throws BeanBaseException 假如或bean过程失败，则抛出该异常
      * @throws NullPointerException 假如第一个参数为null，则抛出该异常
      */
+    @SuppressWarnings("unchecked")
     @Override
     public <T, I> T getBean(Class<I> beanClass, Type[] types) throws BeanBaseException {
         AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
-        BeanObject[] beanObjects = beanClassBeanMap.get(beanClass);
-        if (XLPArrayUtil.isEmpty(beanObjects)){
-            Set<BeanObject> beanObjectSet = new HashSet<>();
-            beanClassBeanMap.forEach((key, value) -> {
-                if (beanClass.isAssignableFrom(key)){
-                    beanObjectSet.addAll(Arrays.asList(value));
-                } else if(key.isAssignableFrom(beanClass)){
-                    for (BeanObject beanObject : value) {
-                        if (beanClass.isInstance(beanObject.getRawObject())){
-                            beanObjectSet.add(beanObject);
-                        }
-                    }
-                }
-            });
-            // 未找到，从Bean定义中去查找
-            if (beanObjectSet.isEmpty()){
+        refreshBeanClassHalfBeanMap(beanClass, types);
+        Set<BeanObject> beanObjectSet = getBeanObjects(beanClass, beanClassBeanMap);
+        BeanObject beanObject = getBeanObject(beanClass, types, beanObjectSet, false);
 
-            } else {
-                return getBean(beanClass, types, beanObjectSet.toArray(new BeanObject[0]));
+        if (beanObject == null){
+            // 未找到，从Bean定义中去查找
+            beanObjectSet = doGetBeanObjects(beanClass);
+            beanObject = getBeanObject(beanClass, types, beanObjectSet, true);
+            IBeanDefinition beanDefinition = beanObject.getBeanDefinition();
+            // 忽略 beanDefinition 为null的情况
+            if (beanDefinition != null){
+                Object bean;
+                if (beanDefinition.isSingleton()){
+                    synchronized (beanDefinition.getBeanClass()){
+                        // 防止单例被创建多个实例对象
+                        refreshBeanClassHalfBeanMap(beanClass, types);
+                        beanObjectSet = getBeanObjects(beanClass, beanClassBeanMap);
+                        beanObject = getBeanObject(beanClass, types, beanObjectSet, false);
+                        bean = beanObject == null ? doCreateBean(beanDefinition) : beanObject.getRawObject();
+                    }
+                } else {
+                    bean = doCreateBean(beanDefinition);
+                }
+                return (T) bean;
             }
-        } else {
-            return getBean(beanClass, types, beanObjects);
         }
-        return null;
+        return (T) beanObject.getRawObject();
     }
 
-    @SuppressWarnings("unchecked")
-    private <T, I> T getBean(Class<I> beanClass, Type[] types, BeanObject[] beanObjects) {
+    /**
+     * 获取指定类型待泛型目标类型的Bean对象
+     *
+     * @param beanClass bean类型
+     * @param types     泛型目标类型
+     * @return
+     * @throws BeanBaseException 假如或bean过程失败，则抛出该异常
+     */
+    @Override
+    public <T> T getBean(Class<?> beanClass, Class<?>... types) {
+        Type[] _types = new Type[types == null ? 0 : types.length];
+        for (int i = 0, len = _types.length; i < len; i++) {
+            _types[i] = types[i];
+        }
+        return getBean(beanClass, _types);
+    }
+
+    private Set<BeanObject> getBeanObjects(Class<?> beanClass, Map<Class<?>, BeanObject[]> beanClassBeanMap) {
+        Set<BeanObject> beanObjectSet = new HashSet<>();
+        beanClassBeanMap.forEach((key, value) -> {
+            if (beanClass.isAssignableFrom(key)){
+                beanObjectSet.addAll(Arrays.asList(value));
+            }
+        });
+        return beanObjectSet;
+    }
+
+    private Set<BeanObject> doGetBeanObjects(Class<?> beanClass){
+        String beanClassName = beanClass.getName();
+        Set<BeanObject> beanObjectList = new HashSet<>();
+        beanClassNameBeanDefinitionMap.forEach((key, value) -> {
+            if (beanClass.isAssignableFrom(value.getBeanClass())
+                && !value.isAbstract()){
+                beanObjectList.add(new BeanObject(value, (Object) null));
+            }
+        });
+        return beanObjectList;
+    }
+
+    private BeanObject getBeanObject(Class<?> beanClass, Type[] types, Set<BeanObject> beanObjects,
+                                     boolean notFindBeanThenThrowException) {
         BeanObject beanObject = null;
         int count = 0;
         for (BeanObject object : beanObjects) {
@@ -409,13 +503,13 @@ public class DefaultBeansContainer implements IBeansContainer {
                 count++;
             }
         }
-        if (count == 0) {
+        if (count == 0 && notFindBeanThenThrowException) {
             throw new NotSuchBeanException("未适配到类型为【" + beanClass.getName() + "】的bean实例！");
         }
         if (count > 1) {
             throw new MultiplyBeanException(beanClass);
         }
-        return (T) beanObject.getRawObject();
+        return beanObject;
     }
 
     /**
@@ -430,5 +524,36 @@ public class DefaultBeansContainer implements IBeansContainer {
     public <T> T getBeanByClassName(String className) throws BeanBaseException {
         AssertUtils.isNotNull(className, "className parameter is null or empty!");
         return getBean(ClassForNameUtils.forName(className));
+    }
+
+    /**
+     * 根据beanID刷新缓存
+     * @param beanId
+     */
+    protected void refreshBeanHalfMap(String beanId){
+        if (beanId == null) return;
+        BeanObject beanObject;
+        do {
+           beanObject = beanHalfMap.get(beanId);
+        } while (beanObject != null);
+    }
+
+    /**
+     * 根据bean类型以及相应的泛型信息刷新缓存
+     * @param beanClass
+     * @param types
+     */
+    protected void refreshBeanClassHalfBeanMap(Class<?> beanClass, Type[] types){
+        if (beanClass == null) return;
+        BeanObject beanObject;
+        do {
+            Set<BeanObject> beanObjectSet = new HashSet<>();
+            beanClassHalfBeanMap.forEach((key, value) -> {
+                if (beanClass.isAssignableFrom(key)){
+                    beanObjectSet.addAll(Arrays.asList(value));
+                }
+            });
+            beanObject = getBeanObject(beanClass, types, beanObjectSet, false);
+        } while (beanObject != null);
     }
 }

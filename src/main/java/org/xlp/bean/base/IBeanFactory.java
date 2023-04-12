@@ -84,6 +84,16 @@ public interface IBeanFactory {
     <T, I> T getBean(Class<I> beanClass, Type[] types) throws BeanBaseException;
 
     /**
+     * 获取指定类型待泛型目标类型的Bean对象
+     * @param beanClass bean类型
+     * @param types 泛型目标类型
+     * @param <T>
+     * @return
+     * @throws BeanBaseException 假如或bean过程失败，则抛出该异常
+     */
+    <T> T getBean(Class<?> beanClass, Class<?>... types);
+
+    /**
      * 获取该类全路径名称的bean对象
      * @param className 类全路径名称
      * @return bean 对象

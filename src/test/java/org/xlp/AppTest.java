@@ -7,10 +7,7 @@ import org.xlp.bean.util.ParameterizedTypeUtils;
 import org.xlp.javabean.JavaBeanPropertiesDescriptor;
 
 import java.lang.reflect.*;
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.Assert.assertTrue;
 
@@ -94,5 +91,29 @@ public class AppTest
     public void test4(){
         Integer i = 2;
         System.out.println(Integer.class.isInstance(null));
+        Map<String, String> map = new HashMap<>();
+        map.put("kk", "23");
+        map.put("zz", "45");
+        System.out.println(map);
+        map.computeIfAbsent("kk", (key) ->{
+            return "25";
+        });
+        System.out.println(map);
+        map.computeIfAbsent("xx", (key) ->{
+            return "25";
+        });
+        System.out.println(map);
+
+        map.compute("kk", (key, value) -> {
+            System.out.println(value);
+            return "55";
+        });
+        System.out.println(map);
+
+        map.compute("66", (key, value) -> {
+            System.out.println(value);
+            return "55";
+        });
+        System.out.println(map);
     }
 }

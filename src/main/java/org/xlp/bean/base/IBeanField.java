@@ -7,6 +7,12 @@ package org.xlp.bean.base;
  */
 public interface IBeanField extends IParameterizedType{
     /**
+     * 获取bean类型
+     * @return
+     */
+    Class<?> getBeanClass();
+
+    /**
      * 判断指定属性是否是基本类型
      */
     boolean isPrimary();

@@ -94,6 +94,16 @@ public class AutoFillBeanFields implements IBeanFields {
         }
 
         /**
+         * 获取bean类型
+         *
+         * @return
+         */
+        @Override
+        public Class<?> getBeanClass() {
+            return beanClass;
+        }
+
+        /**
          * 判断指定属性是否是基本类型获取普通类型
          * 假如是以上类型，则不给这类字段复制
          */

@@ -2,12 +2,13 @@ package org.xlp.bean.impl;
 
 import org.xlp.bean.annotation.Component;
 import org.xlp.bean.base.AbstractBeanDefinition;
+import org.xlp.bean.base.IBeanFields;
 import org.xlp.bean.exception.BeanBaseException;
 
 /**
  * 自定义注册Bean定义实现类，用于处理自定义的bean定义对象
  */
-public class CustomRegisteredBeanDefinition extends AbstractBeanDefinition {
+public class CustomClassOfBeanDefinition extends AbstractBeanDefinition {
     /**
      * beanID
      */
@@ -16,11 +17,33 @@ public class CustomRegisteredBeanDefinition extends AbstractBeanDefinition {
     /**
      * 构造函数
      *
+     * @param beanFields 获取IBeanField数组信息的对象
+     * @throws NullPointerException 假如参数为null，则抛出该异常
+     */
+    public CustomClassOfBeanDefinition(IBeanFields beanFields) {
+        super(beanFields);
+    }
+
+    /**
+     * 构造函数
+     *
      * @param beanClass bean类型
      * @throws NullPointerException 假如参数为null 则抛出该异常
      */
-    public CustomRegisteredBeanDefinition(Class<?> beanClass) {
+    public CustomClassOfBeanDefinition(Class<?> beanClass) {
         super(beanClass);
+    }
+
+    /**
+     * 构造函数
+     *
+     * @param beanClass bean类型
+     * @param beanId beanID
+     * @throws NullPointerException 假如参数为null 则抛出该异常
+     */
+    public CustomClassOfBeanDefinition(Class<?> beanClass, String beanId) {
+        super(beanClass);
+        this.beanId = beanId;
     }
 
     /**
@@ -30,7 +53,7 @@ public class CustomRegisteredBeanDefinition extends AbstractBeanDefinition {
      * @throws NullPointerException 假如参数为null或空 则抛出该异常
      * @throws BeanBaseException    假如获取beanClassName对应的Class对象出错，则抛出该异常
      */
-    public CustomRegisteredBeanDefinition(String beanClassName) {
+    public CustomClassOfBeanDefinition(String beanClassName) {
         super(beanClassName);
     }
 
