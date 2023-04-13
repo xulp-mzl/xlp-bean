@@ -38,7 +38,7 @@ public @interface Component {
     boolean proxy() default false;
 
     /**
-     * 是否延迟实例化对象，只对单例有效，默认延迟加载
+     * 是否延迟实例化对象，只对单例有效，默认非延迟加载
      */
-    boolean lazy() default true;
+    boolean lazy() default false;
 }

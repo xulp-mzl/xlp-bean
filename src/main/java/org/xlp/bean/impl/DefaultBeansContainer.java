@@ -182,6 +182,11 @@ public class DefaultBeansContainer implements IBeansContainer {
                         beanObject = addBeanObjectToBeanMap(beanObject, beanClassBeanMap);
                     }
                 }
+            } else {
+                if (!beanIdIsBlank) {
+                    beanHalfMap.remove(beanId);
+                }
+                removeBeanClassFromHalfBeanMap(beanClass, beanObject);
             }
             removeBeanClassToThreadLocal(beanClass);
         }
@@ -207,7 +212,14 @@ public class DefaultBeansContainer implements IBeansContainer {
         String fieldId = beanField.getRefBeanId();
         String fieldRefClassName = beanField.getFieldClassName();
         if (!XLPStringUtil.isEmpty(fieldId)){
-            Object fieldBean = _getBean(fieldId);
+            Object fieldBean = null;
+            try {
+                fieldBean = _getBean(fieldId);
+            } catch (NotSuchBeanException e) {
+                if (beanField.isRequired()){
+                    throw e;
+                }
+            }
             //设置bean属性
             MethodUtils.invoke(bean, beanField, fieldBean);
         } else {
@@ -216,7 +228,14 @@ public class DefaultBeansContainer implements IBeansContainer {
                     : ClassForNameUtils.forName(fieldRefClassName);
             Type[] types = fieldRefClassNameIsEmpty ? beanField.getActualType() : new Type[0];
 
-            Object fieldBean = _getBean(beanClass, types);
+            Object fieldBean = null;
+            try {
+                fieldBean = _getBean(beanClass, types);
+            } catch (NotSuchBeanException e) {
+                if (beanField.isRequired()){
+                    throw e;
+                }
+            }
             //设置bean属性
             MethodUtils.invoke(bean, beanField, fieldBean);
         }
