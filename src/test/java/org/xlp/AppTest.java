@@ -95,25 +95,33 @@ public class AppTest
         map.put("kk", "23");
         map.put("zz", "45");
         System.out.println(map);
-        map.computeIfAbsent("kk", (key) ->{
+        System.out.println(map.computeIfAbsent("kk", (key) -> {
             return "25";
-        });
+        }));
         System.out.println(map);
-        map.computeIfAbsent("xx", (key) ->{
+        System.out.println(map.computeIfAbsent("xx", (key) -> {
             return "25";
-        });
+        }));
         System.out.println(map);
 
-        map.compute("kk", (key, value) -> {
+        System.out.println(map.compute("kk", (key, value) -> {
             System.out.println(value);
             return "55";
-        });
+        }));
         System.out.println(map);
 
-        map.compute("66", (key, value) -> {
+        System.out.println(map.compute("66", (key, value) -> {
             System.out.println(value);
             return "55";
-        });
+        }));
         System.out.println(map);
+    }
+
+    @Test
+    public void test5(){
+        Optional<String> str = Optional.ofNullable("null");
+        str.ifPresent((str1) -> {
+            throw new RuntimeException("25");
+        });
     }
 }
