@@ -67,7 +67,7 @@ public class DefaultBeansContainer implements IBeansContainer {
     /**
      * 标记是否正在重置容器中
      */
-    private boolean resetting = false;
+    private volatile boolean resetting = false;
 
     /**
      * 向容器中添加bean定义对象
