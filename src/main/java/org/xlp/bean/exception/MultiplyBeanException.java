@@ -8,6 +8,6 @@ public class MultiplyBeanException extends BeanBaseException{
     }
 
     public MultiplyBeanException(String beanClass){
-        super("类名为【" + beanClass + "】bean实例在容器中找到多个。");
+        super("类名为【" + beanClass + "】在容器中找到多个该实现类。");
     }
 }

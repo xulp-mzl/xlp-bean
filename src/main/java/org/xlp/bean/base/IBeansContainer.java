@@ -10,16 +10,36 @@ public interface IBeansContainer extends IBeanFactory{
     /**
      * 向容器中添加bean定义对象
      * @param beanDefinition bean定义对象
-     * @throws BeanDefinitionExistException 加入容器中存在，则抛出该异常
+     * @throws BeanDefinitionExistException 假如容器中存在，则抛出该异常
      */
-     void addBeanDefinition(IBeanDefinition beanDefinition) throws BeanDefinitionExistException;
+     default void addBeanDefinition(IBeanDefinition beanDefinition) throws BeanDefinitionExistException{
+         addBeanDefinition(beanDefinition, false);
+     }
+
+    /**
+     * 向容器中添加bean定义对象
+     * @param beanDefinition bean定义对象
+     * @param covering 是否覆盖已有的bean定义，true；是  false: 否
+     * @throws BeanDefinitionExistException 假如容器中存在并且<dode>covering is false</dode>，则抛出该异常
+     */
+    void addBeanDefinition(IBeanDefinition beanDefinition, boolean covering) throws BeanDefinitionExistException;
 
     /**
      * 向容器中添加指定类型的bean定义对象
      * @param beanClass bean定义对象
-     * @throws BeanDefinitionExistException 加入容器中存在，则抛出该异常
+     * @throws BeanDefinitionExistException 假如容器中存在，则抛出该异常
      */
-    void addBeanDefinition(Class<?> beanClass) throws BeanDefinitionExistException;
+    default void addBeanDefinition(Class<?> beanClass) throws BeanDefinitionExistException{
+        addBeanDefinition(beanClass, false);
+    }
+
+    /**
+     * 向容器中添加指定类型的bean定义对象
+     * @param beanClass bean定义对象
+     * @param covering 是否覆盖已有的bean定义，true；是  false: 否
+     * @throws BeanDefinitionExistException 假如容器中存在并且<dode>covering is false</dode>，则抛出该异常
+     */
+    void addBeanDefinition(Class<?> beanClass, boolean covering) throws BeanDefinitionExistException;
 
     /**
      * 判断bean定义是否在bean容器中已存在
@@ -59,18 +79,9 @@ public interface IBeansContainer extends IBeanFactory{
     <T> void addBean(T bean, Class<? super T> beanClass) throws BeanExistException;
 
     /**
-     * 判断是否有指定ID的bean
-     * @param beanId ID
-     * @return true：有，false：没有
+     * 重置容器中的数据
      */
-    boolean hasBean(String beanId);
-
-    /**
-     * 判断是否有指定类型的bean
-     * @param beanClass
-     * @return true：有，false：没有
-     */
-    boolean hasBean(Class<?> beanClass);
+    void reset();
 
     /**
      * bean定义存在类型

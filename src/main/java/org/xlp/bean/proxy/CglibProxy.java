@@ -19,7 +19,7 @@ import java.lang.reflect.Modifier;
  * @version 1.0
  * 
  */
-public class XLPProxy implements MethodInterceptor{
+public class CglibProxy implements MethodInterceptor{
 	/**
 	 * 要被代理的类型
 	 */
@@ -30,7 +30,7 @@ public class XLPProxy implements MethodInterceptor{
 	 * @param targetClass bean类型
 	 * @throws NullPointerException 假如参数为null则抛出该异常
 	 */
-	public XLPProxy(Class<?> targetClass){
+	public CglibProxy(Class<?> targetClass){
 		AssertUtils.isNotNull(targetClass, "targetClass parameter is null!");
 		this.targetClass = targetClass;
 	}

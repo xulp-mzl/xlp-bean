@@ -7,7 +7,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
-public class A<T, C , z extends B> implements IBeanWrapper {
+public class A<T, C , z extends T> implements IBeanWrapper {
     private int age;
 
     private List<String> list;

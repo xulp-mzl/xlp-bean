@@ -1,7 +1,5 @@
 package org.xlp.bean.impl;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.annotation.Component;
 import org.xlp.bean.base.IBeanCreator;
@@ -12,6 +10,7 @@ import org.xlp.bean.exception.*;
 import org.xlp.bean.object.BeanObject;
 import org.xlp.bean.util.ClassForNameUtils;
 import org.xlp.bean.util.MethodUtils;
+import org.xlp.bean.util.ParameterizedTypeUtils;
 import org.xlp.utils.XLPArrayUtil;
 import org.xlp.utils.XLPStringUtil;
 import org.xlp.utils.collection.XLPCollectionUtil;
@@ -24,8 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * bean 容器的默认实现
  */
 public class DefaultBeansContainer implements IBeansContainer {
-    private final static Logger LOGGER = LoggerFactory.getLogger(DefaultBeansContainer.class);
-
     /**
      * 存储bean id 与 {@link IBeanDefinition} 映射集合
      * <p>key: beanId, value: {@link IBeanDefinition}对象</p>
@@ -68,14 +65,20 @@ public class DefaultBeansContainer implements IBeansContainer {
     private final static ThreadLocal<Set<Class<?>>> CURRENT_THREAD_USED_CLASS = new ThreadLocal<>();
 
     /**
+     * 标记是否正在重置容器中
+     */
+    private boolean resetting = false;
+
+    /**
      * 向容器中添加bean定义对象
      *
      * @param beanDefinition bean定义对象
-     * @throws BeanDefinitionExistException 假如容器中存在，则抛出该异常
+     * @param covering       是否覆盖已有的bean定义，true；是  false: 否
+     * @throws BeanDefinitionExistException 假如容器中存在并且<dode>covering is false</dode>，则抛出该异常
      * @throws NullPointerException 假如参数为空则抛出该异常
      */
     @Override
-    public void addBeanDefinition(IBeanDefinition beanDefinition) throws BeanDefinitionExistException {
+    public void addBeanDefinition(IBeanDefinition beanDefinition, boolean covering) throws BeanDefinitionExistException {
         AssertUtils.isNotNull(beanDefinition, "beanDefinition parameter is null!");
         String beanId = beanDefinition.getBeanId();
         String className = beanDefinition.getBeanClassName();
@@ -84,13 +87,13 @@ public class DefaultBeansContainer implements IBeansContainer {
             IBeanDefinition beanDefinition1;
             if(!XLPStringUtil.isEmpty(beanId)){
                 beanDefinition1 = beanIdBeanDefinitionMap.get(beanId);
-                if (beanDefinition1 != null){
+                if (beanDefinition1 != null && !covering){
                     throw new BeanDefinitionExistException(beanId);
                 }
                 beanIdBeanDefinitionMap.put(beanId, beanDefinition);
             } else {
                 beanDefinition1 = beanClassNameBeanDefinitionMap.get(className);
-                if (beanDefinition1 != null){
+                if (beanDefinition1 != null && !covering){
                     throw new BeanDefinitionExistException(className);
                 }
             }
@@ -99,12 +102,13 @@ public class DefaultBeansContainer implements IBeansContainer {
     }
 
     /**
-     * 预先创建所有非延迟加载的单例bean
+     * 预先创建所有非延迟加载的单例bean, 执行该方法会先去重置容器
      * @see Component#lazy()
      * @throws BeanBaseException 假如创建bean实例失败，则抛出该异常或其子类异常
      */
-    public void createBeans(){
-
+    public synchronized void createBeans(){
+      reset();
+      beanClassNameBeanDefinitionMap.forEach((key, value) -> createBean(value));
     }
 
     /**
@@ -113,6 +117,7 @@ public class DefaultBeansContainer implements IBeansContainer {
      * @return 返回bean实例
      * @throws BeanBaseException 假如创建bean实例失败，则抛出该异常或其子类异常
      */
+    @SuppressWarnings("UnusedReturnValue")
     protected Object createBean(IBeanDefinition beanDefinition) {
         if (beanDefinition.isSingleton() && !beanDefinition.isLazy()
                 && !beanDefinition.isAbstract()){
@@ -127,7 +132,7 @@ public class DefaultBeansContainer implements IBeansContainer {
      * @return 返回bean实例
      * @throws BeanBaseException 假如创建bean实例失败，则抛出该异常或其子类异常
      */
-    protected Object doCreateBean(IBeanDefinition beanDefinition) {
+    private Object doCreateBean(IBeanDefinition beanDefinition) {
         String beanId = beanDefinition.getBeanId();
         Class<?> beanClass = beanDefinition.getBeanClass();
         boolean beanIdIsBlank = XLPStringUtil.isEmpty(beanId);
@@ -182,11 +187,6 @@ public class DefaultBeansContainer implements IBeansContainer {
                         beanObject = addBeanObjectToBeanMap(beanObject, beanClassBeanMap);
                     }
                 }
-            } else {
-                if (!beanIdIsBlank) {
-                    beanHalfMap.remove(beanId);
-                }
-                removeBeanClassFromHalfBeanMap(beanClass, beanObject);
             }
             removeBeanClassToThreadLocal(beanClass);
         }
@@ -211,34 +211,22 @@ public class DefaultBeansContainer implements IBeansContainer {
     private void initBeanAttribute(Object bean, IBeanField beanField) {
         String fieldId = beanField.getRefBeanId();
         String fieldRefClassName = beanField.getFieldClassName();
+        Object fieldBean;
         if (!XLPStringUtil.isEmpty(fieldId)){
-            Object fieldBean = null;
-            try {
-                fieldBean = _getBean(fieldId);
-            } catch (NotSuchBeanException e) {
-                if (beanField.isRequired()){
-                    throw e;
-                }
-            }
-            //设置bean属性
-            MethodUtils.invoke(bean, beanField, fieldBean);
+            fieldBean = _getBean(fieldId);
         } else {
             boolean fieldRefClassNameIsEmpty = XLPStringUtil.isEmpty(fieldRefClassName);
             Class<?> beanClass = fieldRefClassNameIsEmpty ? beanField.getFieldClass()
                     : ClassForNameUtils.forName(fieldRefClassName);
             Type[] types = fieldRefClassNameIsEmpty ? beanField.getActualType() : new Type[0];
-
-            Object fieldBean = null;
-            try {
-                fieldBean = _getBean(beanClass, types);
-            } catch (NotSuchBeanException e) {
-                if (beanField.isRequired()){
-                    throw e;
-                }
-            }
-            //设置bean属性
-            MethodUtils.invoke(bean, beanField, fieldBean);
+            fieldBean = _getBean(beanClass, types);
         }
+        if (beanField.isRequired() && fieldBean == null){
+            throw new BeanBaseException("为找到【" + beanField.getBeanClass() + "." + beanField.getName()
+                    + "属性对应的bean，装配属性失败。");
+        }
+        //设置bean属性
+        MethodUtils.invoke(bean, beanField, fieldBean);
     }
 
     private void removeBeanClassToThreadLocal(Class<?> beanClass){
@@ -297,18 +285,19 @@ public class DefaultBeansContainer implements IBeansContainer {
      * 向容器中添加指定类型的bean定义对象
      *
      * @param beanClass bean定义对象
-     * @throws BeanDefinitionExistException 假如容器中存在，则抛出该异常
+     * @param covering  是否覆盖已有的bean定义，true；是  false: 否
+     * @throws BeanDefinitionExistException 假如容器中存在并且<dode>covering is false</dode>，则抛出该异常
      * @throws NullPointerException 假如参数为空则抛出该异常
      * @see ComponentAnnotationBeanDefinition
      */
     @Override
-    public void addBeanDefinition(Class<?> beanClass) throws BeanDefinitionExistException {
+    public void addBeanDefinition(Class<?> beanClass, boolean covering) throws BeanDefinitionExistException {
         AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
         Component component = beanClass.getAnnotation(Component.class);
         if (component != null) {
-            this.addBeanDefinition(new ComponentAnnotationBeanDefinition(beanClass));
+            this.addBeanDefinition(new ComponentAnnotationBeanDefinition(beanClass), covering);
         } else {
-            this.addBeanDefinition(new CustomClassOfBeanDefinition(beanClass));
+            this.addBeanDefinition(new CustomClassOfBeanDefinition(beanClass), covering);
         }
     }
 
@@ -359,80 +348,77 @@ public class DefaultBeansContainer implements IBeansContainer {
     }
 
     /**
-     * 判断是否有指定ID的bean
-     *
-     * @param beanId ID
-     * @return true：有，false：没有
+     * 重置容器中的数据
      */
     @Override
-    public boolean hasBean(String beanId) {
-        boolean has = beanMap.containsKey(beanId);
-        if (has) return true;
-        IBeanDefinition beanDefinition = beanIdBeanDefinitionMap.get(beanId);
-        return beanDefinition != null && !beanDefinition.isAbstract();
-    }
-
-    /**
-     * 判断是否有指定类型的bean
-     *
-     * @param beanClass
-     * @return true：有，false：没有
-     * @throws NullPointerException 假如参数为空，则抛出该异常
-     */
-    @Override
-    public boolean hasBean(Class<?> beanClass) {
-        AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
-        String beanClassName = beanClass.getName();
-        boolean has = beanClassBeanMap.containsKey(beanClass);
-        if (has) return true;
-        return true;
-    }
-
-    /**
-     * 根据beanId或类型名称获取bean定义，假如没获取到统一抛出异常
-     * @param beanId
-     * @param className
-     * @return
-     * @throws NotSuchBeanException 假如未找到指定条件bean则抛出该异常
-     */
-    private IBeanDefinition getBeanDefinitionAndThrowNotSuchBeanException(String beanId, String className)
-            throws NotSuchBeanException{
-        IBeanDefinition beanDefinition = null;
-        if (!XLPStringUtil.isEmpty(beanId)){
-            beanDefinition = beanIdBeanDefinitionMap.get(beanId);
-        } else if (!XLPStringUtil.isEmpty(className)){
-            beanDefinition = beanClassNameBeanDefinitionMap.get(className);
+    public void reset() {
+        synchronized (this){
+            resetting = true;
+            beanClassHalfBeanMap.clear();
+            beanHalfMap.clear();
+            beanMap.clear();
+            beanClassBeanMap.clear();
+            beanIdBeanDefinitionMap.clear();
+            beanClassNameBeanDefinitionMap.clear();
+            resetting = false;
         }
-        if (beanDefinition == null){
-            throw new NotSuchBeanException(XLPStringUtil.isEmpty(beanId) ? className : beanId);
-        }
-        return beanDefinition;
+        CURRENT_THREAD_USED_CLASS.remove();
     }
 
-
+    private NotSuchBeanException getNotSuchBeanException(String beanId, String className){
+        String msg = XLPStringUtil.isEmpty(beanId) ? "[" + className + "]该类型的bean未找到"
+                : "[" + beanId + "]该id的bean未找到";
+        throw new NotSuchBeanException(msg);
+    }
 
     /**
      * 判断给的id的bean是否被代理
      *
      * @param id bean id
-     * @return true: 是，false：否
      * @throws NotSuchBeanException 假如未找到指定id的bean则抛出该异常
+     * @throws NullPointerException 假如参数为null或空，则抛出该异常
      */
     @Override
     public boolean isProxy(String id) throws NotSuchBeanException {
-        return getBeanDefinitionAndThrowNotSuchBeanException(id, null).isProxy();
+        AssertUtils.isNotNull(id, "id parameter is null or empty!");
+        IBeanDefinition beanDefinition = beanIdBeanDefinitionMap.get(id);
+        if (beanDefinition != null) return beanDefinition.isProxy();
+        BeanObject beanObject = beanMap.get(id);
+        if (beanObject != null) return false;
+        throw getNotSuchBeanException(id, null);
     }
 
     /**
-     * 判断给的类全路径名称的bean是否被代理
+     * 判断给的类型的bean是否被代理
      *
-     * @param className 类全路径名称
+     * @param beanClass bean类型
      * @return true: 是，false：否
      * @throws NotSuchBeanException 假如未找到指定类名的bean则抛出该异常
+     * @throws NullPointerException 假如参数为null，则抛出该异常
      */
     @Override
-    public boolean isProxyByClassName(String className) throws NotSuchBeanException {
-        return getBeanDefinitionAndThrowNotSuchBeanException(null, className).isProxy();
+    public <T> boolean isProxy(Class<T> beanClass) throws NotSuchBeanException {
+        AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
+        IBeanDefinition beanDefinition = getBeanDefinition(beanClass);
+        if (beanDefinition != null) return beanDefinition.isProxy();
+        Set<BeanObject> beanObjects = getBeanObjects(beanClass, beanClassBeanMap);
+        if (!XLPCollectionUtil.isEmpty(beanObjects)) return false;
+        throw getNotSuchBeanException(null, beanClass.getName());
+    }
+
+    private <T> IBeanDefinition getBeanDefinition(Class<T> beanClass){
+        int count = 0;
+        IBeanDefinition beanDefinition = null;
+        for (Map.Entry<String, IBeanDefinition> entry : beanClassNameBeanDefinitionMap.entrySet()) {
+            beanDefinition = entry.getValue();
+            if (beanClass.isAssignableFrom(beanDefinition.getBeanClass())){
+                count++;
+            }
+        }
+        if (count > 1){
+           throw new MultiplyBeanException(beanClass);
+        }
+        return beanDefinition;
     }
 
     /**
@@ -441,22 +427,34 @@ public class DefaultBeansContainer implements IBeansContainer {
      * @param id bean id
      * @return true: 是，false：否
      * @throws NotSuchBeanException 假如未找到指定id的bean则抛出该异常
+     * @throws NullPointerException 假如参数为null或空，则抛出该异常
      */
     @Override
     public boolean isSingleton(String id) throws NotSuchBeanException {
-        return getBeanDefinitionAndThrowNotSuchBeanException(id, null).isSingleton();
+        AssertUtils.isNotNull(id, "id parameter is null or empty!");
+        IBeanDefinition beanDefinition = beanIdBeanDefinitionMap.get(id);
+        if (beanDefinition != null) return beanDefinition.isSingleton();
+        BeanObject beanObject = beanMap.get(id);
+        if (beanObject != null) return true;
+        throw getNotSuchBeanException(id, null);
     }
 
     /**
-     * 判断给的类全路径名称的bean是否是单例
+     * 判断给的类型的bean是否是单例
      *
-     * @param className 类全路径名称
+     * @param beanClass bean类型
      * @return true: 是，false：否
-     * @throws NotSuchBeanException 假如未找到指定类名的bean则抛出该异常
+     * @throws NotSuchBeanException 假如未找到指定id的bean则抛出该异常
+     * @throws NullPointerException 假如参数为null，则抛出该异常
      */
     @Override
-    public boolean isSingletonByClassName(String className) throws NotSuchBeanException {
-        return getBeanDefinitionAndThrowNotSuchBeanException(null, className).isSingleton();
+    public <T> boolean isSingleton(Class<T> beanClass) throws NotSuchBeanException {
+        AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
+        IBeanDefinition beanDefinition = getBeanDefinition(beanClass);
+        if (beanDefinition != null) return beanDefinition.isSingleton();
+        Set<BeanObject> beanObjects = getBeanObjects(beanClass, beanClassBeanMap);
+        if (!XLPCollectionUtil.isEmpty(beanObjects)) return true;
+        throw getNotSuchBeanException(null, beanClass.getName());
     }
 
     /**
@@ -465,22 +463,34 @@ public class DefaultBeansContainer implements IBeansContainer {
      * @param id bean id
      * @return true: 是，false：否
      * @throws NotSuchBeanException 假如未找到指定id的bean则抛出该异常
+     * @throws NullPointerException 假如参数为null或空，则抛出该异常
      */
     @Override
     public boolean isLazy(String id) throws NotSuchBeanException {
-        return getBeanDefinitionAndThrowNotSuchBeanException(id, null).isLazy();
+        AssertUtils.isNotNull(id, "id parameter is null or empty!");
+        IBeanDefinition beanDefinition = beanIdBeanDefinitionMap.get(id);
+        if (beanDefinition != null) return beanDefinition.isLazy();
+        BeanObject beanObject = beanMap.get(id);
+        if (beanObject != null) return false;
+        throw getNotSuchBeanException(id, null);
     }
 
     /**
-     * 判断给的类全路径名称的bean是否延迟实例化
+     * 判断给的类型的bean是否延迟实例化
      *
-     * @param className 类全路径名称
+     * @param beanClass bean类型
      * @return true: 是，false：否
-     * @throws NotSuchBeanException 假如未找到指定类名的bean则抛出该异常
+     * @throws NotSuchBeanException 假如未找到指定id的bean则抛出该异常
+     * @throws NullPointerException 假如参数为null，则抛出该异常
      */
     @Override
-    public boolean isLazyByClassName(String className) throws NotSuchBeanException {
-        return getBeanDefinitionAndThrowNotSuchBeanException(null, className).isLazy();
+    public <T> boolean isLazy(Class<T> beanClass) throws NotSuchBeanException {
+        AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
+        IBeanDefinition beanDefinition = getBeanDefinition(beanClass);
+        if (beanDefinition != null) return beanDefinition.isLazy();
+        Set<BeanObject> beanObjects = getBeanObjects(beanClass, beanClassBeanMap);
+        if (!XLPCollectionUtil.isEmpty(beanObjects)) return false;
+        throw getNotSuchBeanException(null, beanClass.getName());
     }
 
     /**
@@ -494,7 +504,12 @@ public class DefaultBeansContainer implements IBeansContainer {
     @Override
     public <T> T getBean(String beanId) throws NotSuchBeanException {
         AssertUtils.isNotNull(beanId, "beanId parameter is null or empty!");
+        //判断容器是否在重置中
+        checkContainerResetting();
         T bean = _getBean(beanId);
+        if (bean == null){
+            throw new NotSuchBeanException("未适配到id为【" + beanId + "】的bean实例！");
+        }
         //防止获取半初始化的bean对象
         awaitRemovedBeanIdFromCache(beanId);
         return bean;
@@ -539,14 +554,7 @@ public class DefaultBeansContainer implements IBeansContainer {
             }
         }
 
-        if (beanObject == null){
-            throw new NotSuchBeanException("未适配到id为【" + beanId + "】的bean实例！");
-        }
-        T bean = (T) beanObject.getRawObject();
-        if (bean == null){
-            throw new NotSuchBeanException("未适配到id为【" + beanId + "】的bean实例！");
-        }
-        return bean;
+        return (beanObject == null ? null : (T) beanObject.getRawObject());
     }
 
     /**
@@ -559,7 +567,7 @@ public class DefaultBeansContainer implements IBeansContainer {
      */
     @Override
     public <T, I> T getBean(Class<I> beanClass) throws NotSuchBeanException {
-        return getBean(beanClass, new Type[0]);
+        return getBean(beanClass, ParameterizedTypeUtils.getClassTypes(beanClass, true));
     }
 
     /**
@@ -574,10 +582,23 @@ public class DefaultBeansContainer implements IBeansContainer {
     @Override
     public <T, I> T getBean(Class<I> beanClass, Type[] types) throws BeanBaseException {
         AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
+        //判断容器是否在重置中
+        checkContainerResetting();
+
         T bean = _getBean(beanClass, types);
+        if (bean == null){
+            throw new NotSuchBeanException("未适配到类型为【" + beanClass.getName() + getTypesDescription(types)
+                    + "】的bean实例！");
+        }
         //防止获取半初始化的bean对象
         awaitRemovedBeanClassFromCache(beanClass, types);
         return bean;
+    }
+
+    private void checkContainerResetting() {
+        if (resetting){
+            throw new BeanBaseException("容器正在重置中，获取bean失败！");
+        }
     }
 
     private <I> void awaitRemovedBeanClassFromCache(Class<I> beanClass, Type[] types) {
@@ -609,7 +630,10 @@ public class DefaultBeansContainer implements IBeansContainer {
         if (beanObject == null){
             // 未找到，从Bean定义中去查找
             beanObjectSet = doGetBeanObjects(beanClass);
-            beanObject = getBeanObject(beanClass, types, beanObjectSet, true);
+            beanObject = getBeanObject(beanClass, types, beanObjectSet, false);
+            if (beanObject == null){
+                return null;
+            }
             IBeanDefinition beanDefinition = beanObject.getBeanDefinition();
             // 忽略 beanDefinition 为null的情况
             if (beanDefinition != null){
@@ -628,16 +652,11 @@ public class DefaultBeansContainer implements IBeansContainer {
             }
         }
 
-        T bean = (T) beanObject.getRawObject();
-        if (bean == null){
-            throw new NotSuchBeanException("未适配到类型为【" + beanClass.getName() + "--" + getTypesDescription(types)
-                    + "】的bean实例！");
-        }
-        return bean;
+        return (T) beanObject.getRawObject();
     }
 
     private String getTypesDescription(Type[] types){
-        StringBuilder sb = new StringBuilder("[");
+        StringBuilder sb = new StringBuilder();
         boolean start = true;
         types = types == null ? new Type[0] : types;
         for (Type type : types) {
@@ -647,7 +666,7 @@ public class DefaultBeansContainer implements IBeansContainer {
             sb.append(type.getTypeName());
             start = false;
         }
-        return sb.append("]").toString();
+        return sb.length() == 0 ? XLPStringUtil.EMPTY : "-<" + sb.toString() + ">";
     }
 
     /**
@@ -700,7 +719,7 @@ public class DefaultBeansContainer implements IBeansContainer {
             }
         }
         if (count == 0 && notFindBeanThenThrowException) {
-            throw new NotSuchBeanException("未适配到类型为【" + beanClass.getName() + "--" + getTypesDescription(types)
+            throw new NotSuchBeanException("未适配到类型为【" + beanClass.getName() + getTypesDescription(types)
                     + "】的bean实例！");
         }
         if (count > 1) {

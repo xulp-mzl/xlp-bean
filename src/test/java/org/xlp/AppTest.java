@@ -2,7 +2,7 @@ package org.xlp;
 
 import org.junit.Test;
 import org.xlp.bean.impl.DefaultBeansContainer;
-import org.xlp.bean.proxy.XLPProxy;
+import org.xlp.bean.proxy.CglibProxy;
 import org.xlp.bean.util.ParameterizedTypeUtils;
 import org.xlp.javabean.JavaBeanPropertiesDescriptor;
 
@@ -65,7 +65,7 @@ public class AppTest
 
     @Test
     public void test2(){
-        XLPProxy proxy = new XLPProxy(A.class);
+        CglibProxy proxy = new CglibProxy(A.class);
         A a = proxy.createProxy();
         a.fun2();
         a.fun4();
@@ -119,9 +119,11 @@ public class AppTest
 
     @Test
     public void test5(){
-        Optional<String> str = Optional.ofNullable("null");
+        Optional<String> str = Optional.ofNullable(null);
         str.ifPresent((str1) -> {
             throw new RuntimeException("25");
         });
+        DefaultBeansContainer container = new DefaultBeansContainer();
+        System.out.println((Object) container.getBean(C.class));
     }
 }

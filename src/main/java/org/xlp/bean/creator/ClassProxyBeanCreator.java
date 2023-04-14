@@ -3,7 +3,7 @@ package org.xlp.bean.creator;
 import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.base.IBeanCreator;
 import org.xlp.bean.exception.BeanBaseException;
-import org.xlp.bean.proxy.XLPProxy;
+import org.xlp.bean.proxy.CglibProxy;
 import org.xlp.bean.util.ClassForNameUtils;
 
 /**
@@ -13,7 +13,7 @@ public class ClassProxyBeanCreator implements IBeanCreator {
     /**
      * cglib代理bean操作类
      */
-    private final XLPProxy proxy;
+    private final CglibProxy proxy;
 
     /**
      * 构造器
@@ -26,7 +26,7 @@ public class ClassProxyBeanCreator implements IBeanCreator {
         if (beanClass.isInterface()){
             throw new BeanBaseException("该类型【" + beanClass.getName() + "】是接口，不支持代理！");
         }
-        proxy = new XLPProxy(beanClass);
+        proxy = new CglibProxy(beanClass);
     }
 
     /**

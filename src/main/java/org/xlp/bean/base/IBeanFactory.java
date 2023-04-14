@@ -1,7 +1,9 @@
 package org.xlp.bean.base;
 
+import org.xlp.assertion.AssertUtils;
 import org.xlp.bean.exception.BeanBaseException;
 import org.xlp.bean.exception.NotSuchBeanException;
+import org.xlp.bean.util.ClassForNameUtils;
 
 import java.lang.reflect.Type;
 
@@ -13,18 +15,29 @@ public interface IBeanFactory {
      * 判断给的id的bean是否被代理
      *
      * @param id bean id
-     * @return true: 是，false：否
      * @throws NotSuchBeanException 假如未找到指定id的bean则抛出该异常
      */
     boolean isProxy(String id) throws NotSuchBeanException;
+
+    /**
+     * 判断给的类型的bean是否被代理
+     * @param beanClass bean类型
+     * @return true: 是，false：否
+     * @throws NotSuchBeanException 假如未找到指定类名的bean则抛出该异常
+     */
+    <T> boolean isProxy(Class<T> beanClass) throws NotSuchBeanException;
 
     /**
      * 判断给的类全路径名称的bean是否被代理
      * @param className 类全路径名称
      * @return true: 是，false：否
      * @throws NotSuchBeanException 假如未找到指定类名的bean则抛出该异常
+     * @throws NullPointerException 假如参数为null或空，则抛出该异常
      */
-    boolean isProxyByClassName(String className) throws NotSuchBeanException;
+    default boolean isProxyByClassName(String className) throws NotSuchBeanException {
+        AssertUtils.isNotNull(className, "className parameter is null or empty!");
+        return isProxy(ClassForNameUtils.forName(className));
+    }
 
     /**
      * 判断给的id的bean是否是单例
@@ -35,12 +48,24 @@ public interface IBeanFactory {
     boolean isSingleton(String id) throws NotSuchBeanException;
 
     /**
+     * 判断给的类型的bean是否是单例
+     * @param beanClass bean类型
+     * @return true: 是，false：否
+     * @throws NotSuchBeanException 假如未找到指定id的bean则抛出该异常
+     */
+    <T> boolean isSingleton(Class<T> beanClass) throws NotSuchBeanException;
+
+    /**
      * 判断给的类全路径名称的bean是否是单例
      * @param className 类全路径名称
      * @return true: 是，false：否
      * @throws NotSuchBeanException 假如未找到指定类名的bean则抛出该异常
+     * @throws NullPointerException 假如参数为null或空，则抛出该异常
      */
-    boolean isSingletonByClassName(String className) throws NotSuchBeanException;
+    default boolean isSingletonByClassName(String className) throws NotSuchBeanException {
+        AssertUtils.isNotNull(className, "className parameter is null or empty!");
+        return isSingleton(ClassForNameUtils.forName(className));
+    }
 
     /**
      * 判断给的id的bean是否延迟实例化
@@ -55,8 +80,20 @@ public interface IBeanFactory {
      * @param className 类全路径名称
      * @return true: 是，false：否
      * @throws NotSuchBeanException 假如未找到指定类名的bean则抛出该异常
+     * @throws NullPointerException 假如参数为null或空，则抛出该异常
      */
-    boolean isLazyByClassName(String className) throws NotSuchBeanException;
+    default boolean isLazyByClassName(String className) throws NotSuchBeanException {
+        AssertUtils.isNotNull(className, "className parameter is null or empty!");
+        return isLazy(ClassForNameUtils.forName(className));
+    }
+
+    /**
+     * 判断给的类型的bean是否延迟实例化
+     * @param beanClass bean类型
+     * @return true: 是，false：否
+     * @throws NotSuchBeanException 假如未找到指定id的bean则抛出该异常
+     */
+    <T> boolean isLazy(Class<T> beanClass) throws NotSuchBeanException;
 
     /**
      * 获取该id的bean对象

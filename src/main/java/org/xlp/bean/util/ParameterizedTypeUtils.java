@@ -17,9 +17,24 @@ public class ParameterizedTypeUtils {
      * @return
      */
     public static Type[] getClassTypes(Class<?> clazz){
+        return getClassTypes(clazz, false);
+    }
+
+    /**
+     * 获取指定类类或接口的泛型信息，找到了泛型信息，就停止向上找了
+     * @param clazz
+     * @param fromSelf 是否从类自身开始查找泛型信息，true：从类自身开始查找，false：从父类或接口开始查找
+     * @return
+     */
+    public static Type[] getClassTypes(Class<?> clazz, boolean fromSelf){
         Type[] types = new Type[0];
         if (clazz == null){
             return types;
+        }
+
+        if (fromSelf) {
+            types = clazz.getTypeParameters();
+            if (types.length > 0) return types;
         }
 
         Type type = clazz.getGenericSuperclass();
@@ -39,13 +54,13 @@ public class ParameterizedTypeUtils {
         if (XLPArrayUtil.isEmpty(types)){
             //父类没找到再从父类的父类中查找，直到Object.class
             if ((type instanceof Class) && type != Object.class){
-                types = getClassTypes((Class<?>) type);
+                types = getClassTypes((Class<?>) type, false);
             }
             if (XLPArrayUtil.isEmpty(types)){
                 //还没找到从接口的父接口查找
                 for (Type genericInterface : genericInterfaces) {
                     if (genericInterface instanceof Class){
-                        types = getClassTypes((Class<?>) genericInterface);
+                        types = getClassTypes((Class<?>) genericInterface, false);
                         if (!XLPArrayUtil.isEmpty(types)) return types;
                     }
                 }
