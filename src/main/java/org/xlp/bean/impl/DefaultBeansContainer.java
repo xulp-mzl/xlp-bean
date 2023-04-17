@@ -214,12 +214,16 @@ public class DefaultBeansContainer implements IBeansContainer {
         Object fieldBean;
         if (!XLPStringUtil.isEmpty(fieldId)){
             fieldBean = _getBean(fieldId);
+        } else if(!XLPStringUtil.isEmpty(fieldRefClassName)){
+            Class<?> beanClass = ClassForNameUtils.forName(fieldRefClassName);
+            fieldBean = _getBean(beanClass, new Type[0]);
         } else {
-            boolean fieldRefClassNameIsEmpty = XLPStringUtil.isEmpty(fieldRefClassName);
-            Class<?> beanClass = fieldRefClassNameIsEmpty ? beanField.getFieldClass()
-                    : ClassForNameUtils.forName(fieldRefClassName);
-            Type[] types = fieldRefClassNameIsEmpty ? beanField.getActualType() : new Type[0];
-            fieldBean = _getBean(beanClass, types);
+            String fieldName = beanField.getName();
+            fieldBean = _getBean(fieldName);
+            Class<?> beanClass = beanField.getFieldClass();
+            if (!beanClass.isInstance(fieldBean)){
+                fieldBean = _getBean(beanClass, beanField.getActualType());
+            }
         }
         if (beanField.isRequired() && fieldBean == null){
             throw new BeanBaseException("为找到【" + beanField.getBeanClass() + "." + beanField.getName()
@@ -328,11 +332,60 @@ public class DefaultBeansContainer implements IBeansContainer {
      *
      * @param bean
      * @param beanId
-     * @throws BeanExistException 假如容器中存指定ID的bean，则抛出该异常
+     * @param covering 是否覆盖已有的bean定义，true；是  false: 否
+     * @param types    对应的泛型信息
+     * @throws BeanExistException 假如容器中存在并且<dode>covering is false</dode>，则抛出该异常
+     * @throws NullPointerException 假如第一个参数为null，则抛出该异常
      */
+    @SuppressWarnings("unchecked")
     @Override
-    public <T> void addBean(T bean, String beanId) throws BeanExistException {
+    public <T> void addBean(T bean, String beanId, boolean covering, Class<?>... types) throws BeanExistException {
+        AssertUtils.isNotNull(bean, "bean parameter is null!");
+        Object _bean = _getBean(beanId);
+        if(_bean != null && !covering){
+            throw new BeanExistException(beanId, bean);
+        }
+        beanMap.put(beanId, new BeanObject(bean, types));
+        _addBean(_bean, bean, (Class<T>) bean.getClass(), types);
+    }
 
+    /**
+     * 向容器中添加指定类型的bean
+     *
+     * @param oldBean
+     * @param bean
+     * @param beanClass
+     * @param types     对应的泛型信息
+     */
+    private <T> void _addBean(Object oldBean, T bean, Class<? super T> beanClass, Class<?>... types)
+            throws BeanExistException {
+        if(oldBean == null){
+            beanClassBeanMap.compute(beanClass, (key, value) -> {
+                if(XLPArrayUtil.isEmpty(value)){
+                    return new BeanObject[]{new BeanObject(bean, types)};
+                }
+                int len = value.length;
+                value = Arrays.copyOf(value, len + 1);
+                value[len] = new BeanObject(bean, types);
+                return value;
+            });
+        } else {
+            Class<?> key = null;
+            Set<BeanObject> beanObjects = null;
+            loop: for (Map.Entry<Class<?>, BeanObject[]> entry : beanClassBeanMap.entrySet()) {
+                for (BeanObject beanObject : entry.getValue()) {
+                    if (oldBean == beanObject.getRawObject()){
+                        key = entry.getKey();
+                        beanObjects = new HashSet<>(Arrays.asList(entry.getValue()));
+                        beanObjects.remove(beanObject);
+                        break loop;
+                    }
+                }
+            }
+            if (key != null){
+                beanClassBeanMap.put(key, beanObjects.toArray(new BeanObject[0]));
+            }
+        }
     }
 
     /**
@@ -340,11 +393,21 @@ public class DefaultBeansContainer implements IBeansContainer {
      *
      * @param bean
      * @param beanClass
-     * @throws BeanExistException 假如容器中存指定类型的bean，则抛出该异常
+     * @param covering  是否覆盖已有的bean定义，true；是  false: 否
+     * @param types     对应的泛型信息
+     * @throws BeanExistException 假如容器中存在并且<dode>covering is false</dode>，则抛出该异常
+     * @throws NullPointerException 假如第一个或第二个参数为null，则抛出该异常
      */
     @Override
-    public <T> void addBean(T bean, Class<? super T> beanClass) throws BeanExistException {
-
+    public <T> void addBean(T bean, Class<? super T> beanClass, boolean covering, Class<?>... types)
+            throws BeanExistException {
+        AssertUtils.isNotNull(bean, "bean parameter is null!");
+        AssertUtils.isNotNull(beanClass, "beanClass parameter is null!");
+        Object _bean = _getBean(beanClass, types);
+        if(_bean != null && !covering){
+            throw new BeanExistException(beanClass);
+        }
+        _addBean(_bean, bean, beanClass, types);
     }
 
     /**
@@ -358,8 +421,6 @@ public class DefaultBeansContainer implements IBeansContainer {
             beanHalfMap.clear();
             beanMap.clear();
             beanClassBeanMap.clear();
-            beanIdBeanDefinitionMap.clear();
-            beanClassNameBeanDefinitionMap.clear();
             resetting = false;
         }
         CURRENT_THREAD_USED_CLASS.remove();

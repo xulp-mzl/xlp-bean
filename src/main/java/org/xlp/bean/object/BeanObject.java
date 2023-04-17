@@ -33,6 +33,11 @@ public class BeanObject implements IWrapper {
     private IBeanDefinition beanDefinition;
 
     /**
+     * 标记是否递归查询泛型信息，默认递归查询，直到查到泛型信息后终止查询
+     */
+    private boolean deepFindTypes = true;
+
+    /**
      * 构造函数
      * @param beanDefinition bean定义
      * @param bean 对应的bean对象
@@ -55,6 +60,7 @@ public class BeanObject implements IWrapper {
        this.types = types;
        this.object = bean;
        this.beanClass = bean.getClass();
+       deepFindTypes = false;
     }
 
     /**
@@ -89,7 +95,7 @@ public class BeanObject implements IWrapper {
      * @return true: 一致，false：不一致
      */
     public boolean compareTypes(Type[] types){
-        if (XLPArrayUtil.isEmpty(this.types)){
+        if (deepFindTypes && XLPArrayUtil.isEmpty(this.types)){
             this.types = ParameterizedTypeUtils.getClassTypes(this.beanClass);
         }
 
